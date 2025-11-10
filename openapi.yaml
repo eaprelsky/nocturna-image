@@ -1,0 +1,381 @@
+openapi: 3.0.3
+info:
+  title: Nocturna Chart Service API
+  description: Microservice for rendering astrological natal charts as images
+  version: 1.0.0
+  contact:
+    name: Nocturna Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://chart.nocturna.ru
+    description: Production
+
+security:
+  - BearerAuth: []
+
+paths:
+  /:
+    get:
+      summary: API Information
+      security: []
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  version:
+                    type: string
+                  status:
+                    type: string
+
+  /health:
+    get:
+      summary: Health Check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      summary: Prometheus Metrics
+      security: []
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/chart/render:
+    post:
+      summary: Render Natal Chart
+      description: Generate a natal chart image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NatalChartRequest'
+      responses:
+        '200':
+          description: Chart rendered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChartResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/chart/render/transit:
+    post:
+      summary: Render Transit Chart
+      description: Generate a transit chart with natal and current transit positions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitChartRequest'
+      responses:
+        '200':
+          description: Transit chart rendered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitChartResponse'
+
+  /api/v1/chart/render/synastry:
+    post:
+      summary: Render Synastry Chart
+      description: Generate a synastry chart comparing two people
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SynastryChartRequest'
+      responses:
+        '200':
+          description: Synastry chart rendered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynastryChartResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API key for authentication
+
+  schemas:
+    Planet:
+      type: object
+      required:
+        - lon
+      properties:
+        lon:
+          type: number
+          minimum: 0
+          maximum: 360
+          description: Ecliptic longitude in degrees
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+          description: Ecliptic latitude in degrees
+
+    House:
+      type: object
+      required:
+        - lon
+      properties:
+        lon:
+          type: number
+          minimum: 0
+          maximum: 360
+
+    Planets:
+      type: object
+      required:
+        - sun
+        - moon
+        - mercury
+        - venus
+        - mars
+        - jupiter
+        - saturn
+        - uranus
+        - neptune
+        - pluto
+      properties:
+        sun:
+          $ref: '#/components/schemas/Planet'
+        moon:
+          $ref: '#/components/schemas/Planet'
+        mercury:
+          $ref: '#/components/schemas/Planet'
+        venus:
+          $ref: '#/components/schemas/Planet'
+        mars:
+          $ref: '#/components/schemas/Planet'
+        jupiter:
+          $ref: '#/components/schemas/Planet'
+        saturn:
+          $ref: '#/components/schemas/Planet'
+        uranus:
+          $ref: '#/components/schemas/Planet'
+        neptune:
+          $ref: '#/components/schemas/Planet'
+        pluto:
+          $ref: '#/components/schemas/Planet'
+
+    RenderOptions:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [png, svg, jpeg]
+          default: png
+        width:
+          type: integer
+          minimum: 400
+          maximum: 2000
+          default: 800
+        height:
+          type: integer
+          minimum: 400
+          maximum: 2000
+          default: 800
+        quality:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 90
+        theme:
+          type: string
+          enum: [light, dark]
+          default: light
+
+    NatalChartRequest:
+      type: object
+      required:
+        - planets
+        - houses
+      properties:
+        planets:
+          $ref: '#/components/schemas/Planets'
+        houses:
+          type: array
+          items:
+            $ref: '#/components/schemas/House'
+          minItems: 12
+          maxItems: 12
+        renderOptions:
+          $ref: '#/components/schemas/RenderOptions'
+
+    TransitChartRequest:
+      type: object
+      required:
+        - natal
+        - transit
+      properties:
+        natal:
+          type: object
+          properties:
+            planets:
+              $ref: '#/components/schemas/Planets'
+            houses:
+              type: array
+              items:
+                $ref: '#/components/schemas/House'
+        transit:
+          type: object
+          properties:
+            planets:
+              $ref: '#/components/schemas/Planets'
+            datetime:
+              type: string
+              format: date-time
+
+    SynastryChartRequest:
+      type: object
+      required:
+        - person1
+        - person2
+      properties:
+        person1:
+          type: object
+          properties:
+            name:
+              type: string
+            planets:
+              $ref: '#/components/schemas/Planets'
+            houses:
+              type: array
+              items:
+                $ref: '#/components/schemas/House'
+
+    ChartResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          properties:
+            image:
+              type: string
+              description: Base64 encoded image
+            format:
+              type: string
+            size:
+              type: integer
+            dimensions:
+              type: object
+              properties:
+                width:
+                  type: integer
+                height:
+                  type: integer
+            generatedAt:
+              type: string
+              format: date-time
+        meta:
+          type: object
+          properties:
+            renderTime:
+              type: integer
+            version:
+              type: string
+
+    TransitChartResponse:
+      allOf:
+        - $ref: '#/components/schemas/ChartResponse'
+
+    SynastryChartResponse:
+      allOf:
+        - $ref: '#/components/schemas/ChartResponse'
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded]
+        version:
+          type: string
+        uptime:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+  responses:
+    ValidationError:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    AuthError:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+

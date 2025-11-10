@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nocturna Chart</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: white;
+      font-family: Arial, sans-serif;
+    }
+
+    body.dark {
+      background: #1a1a1a;
+    }
+
+    #chart-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #chart-container svg {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart-container"></div>
+
+  <!-- Include nocturna-wheel library from CDN or local -->
+  <script src="https://unpkg.com/nocturna-wheel@^2.0.0/dist/nocturna-wheel.umd.js"></script>
+
+  <script>
+    /* CHART_CONFIG_PLACEHOLDER */
+
+    // Apply theme to body
+    if (chartConfig.renderOptions?.theme === 'dark') {
+      document.body.classList.add('dark');
+    }
+
+    // Create chart configuration for nocturna-wheel
+    const wheelConfig = {
+      container: '#chart-container',
+      planets: chartConfig.planets || {},
+      houses: chartConfig.houses || [],
+      config: {
+        zodiacSettings: {
+          enabled: true
+        },
+        planetSettings: {
+          enabled: true
+        },
+        houseSettings: {
+          enabled: true
+        },
+        svg: {
+          width: chartConfig.renderOptions?.width || 800,
+          height: chartConfig.renderOptions?.height || 800,
+          viewBox: `0 0 ${chartConfig.renderOptions?.width || 800} ${chartConfig.renderOptions?.height || 800}`
+        }
+      }
+    };
+
+    // Add secondary planets if present (for transit/synastry)
+    if (chartConfig.secondaryPlanets) {
+      wheelConfig.secondaryPlanets = chartConfig.secondaryPlanets;
+    }
+
+    // Configure aspects based on chart type
+    if (chartConfig.aspectSettings) {
+      // Simple natal chart
+      wheelConfig.config.primaryAspectSettings = {
+        enabled: chartConfig.aspectSettings.enabled !== false,
+        orb: chartConfig.aspectSettings.orb || 6,
+        types: {
+          conjunction: {
+            angle: 0,
+            orb: chartConfig.aspectSettings.types?.conjunction?.orb || 8,
+            color: chartConfig.aspectSettings.types?.conjunction?.color || '#000000',
+            enabled: chartConfig.aspectSettings.types?.conjunction?.enabled !== false,
+            lineStyle: chartConfig.aspectSettings.types?.conjunction?.lineStyle || 'none',
+            strokeWidth: chartConfig.aspectSettings.types?.conjunction?.strokeWidth || 1
+          },
+          opposition: {
+            angle: 180,
+            orb: chartConfig.aspectSettings.types?.opposition?.orb || 6,
+            color: chartConfig.aspectSettings.types?.opposition?.color || '#E41B17',
+            enabled: chartConfig.aspectSettings.types?.opposition?.enabled !== false,
+            lineStyle: chartConfig.aspectSettings.types?.opposition?.lineStyle || 'solid',
+            strokeWidth: chartConfig.aspectSettings.types?.opposition?.strokeWidth || 1
+          },
+          trine: {
+            angle: 120,
+            orb: chartConfig.aspectSettings.types?.trine?.orb || 6,
+            color: chartConfig.aspectSettings.types?.trine?.color || '#4CC417',
+            enabled: chartConfig.aspectSettings.types?.trine?.enabled !== false,
+            lineStyle: chartConfig.aspectSettings.types?.trine?.lineStyle || 'solid',
+            strokeWidth: chartConfig.aspectSettings.types?.trine?.strokeWidth || 1
+          },
+          square: {
+            angle: 90,
+            orb: chartConfig.aspectSettings.types?.square?.orb || 6,
+            color: chartConfig.aspectSettings.types?.square?.color || '#F62817',
+            enabled: chartConfig.aspectSettings.types?.square?.enabled !== false,
+            lineStyle: chartConfig.aspectSettings.types?.square?.lineStyle || 'dashed',
+            strokeWidth: chartConfig.aspectSettings.types?.square?.strokeWidth || 1
+          },
+          sextile: {
+            angle: 60,
+            orb: chartConfig.aspectSettings.types?.sextile?.orb || 4,
+            color: chartConfig.aspectSettings.types?.sextile?.color || '#56A5EC',
+            enabled: chartConfig.aspectSettings.types?.sextile?.enabled !== false,
+            lineStyle: chartConfig.aspectSettings.types?.sextile?.lineStyle || 'dashed',
+            strokeWidth: chartConfig.aspectSettings.types?.sextile?.strokeWidth || 1
+          }
+        }
+      };
+    }
+
+    // Configure aspects for transit/synastry charts
+    if (chartConfig.primaryAspectSettings) {
+      wheelConfig.config.primaryAspectSettings = {
+        enabled: chartConfig.primaryAspectSettings.enabled !== false,
+        orb: chartConfig.primaryAspectSettings.orb || 6,
+        types: buildAspectTypes(chartConfig.primaryAspectSettings.types)
+      };
+    }
+
+    if (chartConfig.secondaryAspectSettings) {
+      wheelConfig.config.secondaryAspectSettings = {
+        enabled: chartConfig.secondaryAspectSettings.enabled !== false,
+        orb: chartConfig.secondaryAspectSettings.orb || 6,
+        types: buildAspectTypes(chartConfig.secondaryAspectSettings.types)
+      };
+    }
+
+    if (chartConfig.synastryAspectSettings) {
+      wheelConfig.config.synastryAspectSettings = {
+        enabled: chartConfig.synastryAspectSettings.enabled !== false,
+        orb: chartConfig.synastryAspectSettings.orb || 3,
+        types: buildAspectTypes(chartConfig.synastryAspectSettings.types)
+      };
+    }
+
+    function buildAspectTypes(types) {
+      if (!types) {
+        return {
+          conjunction: { angle: 0, orb: 8, color: '#000000', enabled: true, lineStyle: 'none', strokeWidth: 1 },
+          opposition: { angle: 180, orb: 6, color: '#E41B17', enabled: true, lineStyle: 'solid', strokeWidth: 1 },
+          trine: { angle: 120, orb: 6, color: '#4CC417', enabled: true, lineStyle: 'solid', strokeWidth: 1 },
+          square: { angle: 90, orb: 6, color: '#F62817', enabled: true, lineStyle: 'dashed', strokeWidth: 1 },
+          sextile: { angle: 60, orb: 4, color: '#56A5EC', enabled: true, lineStyle: 'dashed', strokeWidth: 1 }
+        };
+      }
+
+      const defaultAspects = {
+        conjunction: { angle: 0, orb: 8, color: '#000000', lineStyle: 'none', strokeWidth: 1 },
+        opposition: { angle: 180, orb: 6, color: '#E41B17', lineStyle: 'solid', strokeWidth: 1 },
+        trine: { angle: 120, orb: 6, color: '#4CC417', lineStyle: 'solid', strokeWidth: 1 },
+        square: { angle: 90, orb: 6, color: '#F62817', lineStyle: 'dashed', strokeWidth: 1 },
+        sextile: { angle: 60, orb: 4, color: '#56A5EC', lineStyle: 'dashed', strokeWidth: 1 }
+      };
+
+      const result = {};
+      for (const [name, defaults] of Object.entries(defaultAspects)) {
+        result[name] = {
+          ...defaults,
+          ...types[name],
+          enabled: types[name]?.enabled !== false
+        };
+      }
+
+      return result;
+    }
+
+    // Create and render the chart
+    try {
+      const chart = new NocturnaWheel.WheelChart(wheelConfig);
+      chart.render();
+      console.log('Chart rendered successfully');
+    } catch (error) {
+      console.error('Error rendering chart:', error);
+      document.getElementById('chart-container').innerHTML = 
+        '<div style="color: red; padding: 20px;">Error rendering chart: ' + error.message + '</div>';
+    }
+  </script>
+</body>
+</html>
+
