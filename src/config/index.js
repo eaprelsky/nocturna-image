@@ -35,6 +35,17 @@ const config = {
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
   },
+
+  // Chart library source
+  chartLibrary: {
+    // How to load nocturna-wheel library:
+    // 'inline' - inline library content into HTML (default, self-contained)
+    // 'local' - serve from local server (/nocturna-wheel/...)
+    // 'github' - use GitHub Releases URL (requires internet)
+    source: process.env.CHART_LIBRARY_SOURCE || 'inline',
+    // Custom URL for library (if source is 'github' or 'custom')
+    customUrl: process.env.CHART_LIBRARY_URL || null,
+  },
 };
 
 // Validate required config

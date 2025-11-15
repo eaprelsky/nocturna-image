@@ -356,7 +356,32 @@ class ChartRendererService {
       `const chartConfig = ${JSON.stringify(chartConfig, null, 2)};`
     );
 
-    // Always inline the library to avoid CDN issues and certificate problems
+    // Load library based on configuration
+    // Options: 'inline' (default), 'local' (local server), 'github' (GitHub Releases)
+    const librarySource = config.chartLibrary?.source || 'inline';
+    
+    if (librarySource === 'github' || (librarySource === 'custom' && config.chartLibrary?.customUrl)) {
+      // Use GitHub Releases or custom URL - don't inline, keep script tag
+      const libraryUrl = config.chartLibrary?.customUrl || 
+        'https://github.com/eaprelsky/nocturna-wheel/releases/download/v3.0.2/nocturna-wheel.min.js';
+      
+      // Replace any script tag with the configured URL
+      html = html.replace(
+        /<script[^>]*src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["'][^>]*>/i,
+        `<script src="${libraryUrl}"></script>`
+      );
+      
+      logger.info(`Using ${librarySource} library source: ${libraryUrl}`);
+      return html;
+    }
+    
+    if (librarySource === 'local') {
+      // Use local server - keep script tag as is (will be served by startLocalServer)
+      logger.info('Using local server for library loading');
+      return html;
+    }
+    
+    // Default: inline the library to avoid CDN issues and certificate problems
     // This makes the HTML self-contained and reliable
     try {
       const libraryPath = path.join(
@@ -375,40 +400,69 @@ class ChartRendererService {
       const libraryContent = await fs.readFile(libraryPath, 'utf-8');
       logger.debug(`Library file read: ${libraryContent.length} bytes`);
       
-      // Check if script tag exists in HTML - use simple pattern that matches any script with nocturna-wheel
-      const scriptTagPattern = /<script\s+src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["']\s*>\s*<\/script>/i;
-      const scriptTagMatch = html.match(scriptTagPattern);
+      // Check if script tag exists in HTML - match any script tag with nocturna-wheel in src
+      // This pattern matches:
+      // - <script src="/nocturna-wheel/nocturna-wheel.min.js"></script>
+      // - <script src="https://github.com/.../nocturna-wheel.min.js"></script>
+      // - <script src='...'></script>
+      // - Multiline script tags
+      const scriptTagPatterns = [
+        // Pattern 1: Single line with double quotes
+        /<script\s+src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["']\s*>\s*<\/script>/i,
+        // Pattern 2: Multiline with any quotes
+        /<script[^>]*src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["'][^>]*>\s*<\/script>/is,
+        // Pattern 3: More flexible - any script tag containing nocturna-wheel.js
+        /<script[^>]*src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["'][^>]*>/is
+      ];
+      
+      let scriptTagMatch = null;
+      let matchedPattern = null;
+      
+      for (const pattern of scriptTagPatterns) {
+        scriptTagMatch = html.match(pattern);
+        if (scriptTagMatch) {
+          matchedPattern = pattern;
+          logger.debug('Found script tag with pattern:', scriptTagMatch[0]);
+          break;
+        }
+      }
       
       if (!scriptTagMatch) {
-        // Try alternative pattern - script tag might be on multiple lines
-        const multilinePattern = /<script[^>]*src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["'][^>]*>\s*<\/script>/is;
-        const multilineMatch = html.match(multilinePattern);
-        if (multilineMatch) {
-          logger.debug('Found script tag (multiline pattern):', multilineMatch[0]);
-          html = html.replace(multilinePattern, `<script>\n${libraryContent}\n</script>`);
-        } else {
-          logger.error('No nocturna-wheel script tag found in HTML template');
-          logger.error('HTML template sample (first 2000 chars):', html.substring(0, 2000));
-          throw new RenderError('Failed to inline nocturna-wheel library: script tag not found in template');
-        }
-      } else {
-        logger.debug('Found script tag:', scriptTagMatch[0]);
-        html = html.replace(scriptTagPattern, `<script>\n${libraryContent}\n</script>`);
+        logger.error('No nocturna-wheel script tag found in HTML template');
+        logger.error('HTML template sample (first 2000 chars):', html.substring(0, 2000));
+        throw new RenderError('Failed to inline nocturna-wheel library: script tag not found in template');
       }
+      
+      // Replace script tag with inlined library
+      html = html.replace(matchedPattern, `<script>\n${libraryContent}\n</script>`);
       
       // Verify replacement worked - check that script tag is gone and library content is present
       const hasScriptTag = /<script[^>]*src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["']/i.test(html);
-      const hasLibraryContent = html.includes('NocturnaWheel') || html.includes('nocturna-wheel');
+      const hasLibraryContent = html.includes('NocturnaWheel') || html.includes('var NocturnaWheel') || html.includes('const NocturnaWheel');
       
       if (hasScriptTag) {
         logger.error('Script tag still present after replacement - replacement failed');
         logger.error('HTML may contain multiple script tags or pattern did not match');
-        throw new RenderError('Failed to inline nocturna-wheel library: replacement failed');
+        // Try one more time with the exact matched string
+        const exactMatch = scriptTagMatch[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        html = html.replace(exactMatch, `<script>\n${libraryContent}\n</script>`);
+        
+        // Check again
+        const stillHasScriptTag = /<script[^>]*src\s*=\s*["'][^"']*nocturna-wheel[^"']*\.js[^"']*["']/i.test(html);
+        if (stillHasScriptTag) {
+          logger.error('Replacement failed even with exact match - will use local server fallback');
+          throw new Error('Library inlining failed - will use local server');
+        }
       }
       
       if (!hasLibraryContent) {
         logger.warn('Library content may not be properly inlined - NocturnaWheel not found in HTML');
         logger.warn('This may indicate that the library file does not contain expected content');
+        // Check if library file is actually JavaScript
+        if (!libraryContent.includes('function') && !libraryContent.includes('var') && !libraryContent.includes('const')) {
+          logger.error('Library file does not appear to be valid JavaScript');
+          throw new Error('Library file is not valid JavaScript');
+        }
       } else {
         logger.info(`Nocturna-wheel library successfully inlined into HTML (${libraryContent.length} bytes)`);
       }
@@ -417,10 +471,12 @@ class ChartRendererService {
         // If library file not found, throw error
         throw error;
       }
-      // For other errors (like file read errors), log and fallback to local server
+      
+      // For other errors (like replacement failed), log and allow fallback to local server
       logger.error(`Failed to inline library: ${error.message}`, error);
-      logger.warn('Falling back to local server for library loading');
-      // Don't throw - allow fallback to local server
+      logger.warn('Will use local server to serve library (fallback mode)');
+      // Don't throw - allow fallback to local server which is already configured
+      // The script tag in template will be served by startLocalServer()
     }
 
     return html;
