@@ -6,20 +6,15 @@ services:
     container_name: nocturna-chart-service
     ports:
       - "3011:3011"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=3011
       - HOST=0.0.0.0
-      - API_KEY=${CHART_SERVICE_API_KEY:-change-me-in-production}
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - LOG_FORMAT=${LOG_FORMAT:-json}
-      - MAX_CONCURRENT_RENDERS=${MAX_CONCURRENT_RENDERS:-5}
-      - RENDER_TIMEOUT=${RENDER_TIMEOUT:-10000}
-      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-60000}
-      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
-      - CORS_ORIGIN=${CORS_ORIGIN:-*}
-      - ENABLE_METRICS=${ENABLE_METRICS:-true}
+      # Override API_KEY if not set in .env (required in production)
+      - API_KEY=${API_KEY:-change-me-in-production}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3011/health"]
