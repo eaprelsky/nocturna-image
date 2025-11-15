@@ -27,9 +27,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create app directory
 WORKDIR /app
 
-# Create non-root user early (for better security)
-RUN useradd -m -u 1000 appuser
-
 # Copy package files first (for better layer caching)
 COPY package*.json ./
 
@@ -37,8 +34,8 @@ COPY package*.json ./
 RUN npm ci --only=production && \
     npm cache clean --force
 
-# Copy application files
-COPY --chown=appuser:appuser . .
+# Copy application files (use built-in node user from base image)
+COPY --chown=node:node . .
 
 # Set environment variables
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
@@ -53,8 +50,8 @@ EXPOSE 3011
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3011/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Switch to non-root user
-USER appuser
+# Switch to non-root user (built-in from node:20-slim)
+USER node
 
 # Start application
 CMD ["node", "src/app.js"]
