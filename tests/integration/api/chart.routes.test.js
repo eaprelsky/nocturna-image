@@ -1,19 +1,29 @@
+// Set environment variables BEFORE importing app
+process.env.API_KEY = 'test-api-key';
+process.env.NODE_ENV = 'test';
+
 const request = require('supertest');
-const app = require('../../../src/app');
-const { sampleNatalChart } = require('../../fixtures/sample-charts');
+const { sampleNatalChart, sampleTransitChart, sampleSynastryChart } = require('../../fixtures/sample-charts');
 
 // Mock browser service to avoid actually launching Chrome in tests
 jest.mock('../../../src/services/browser.service');
 jest.mock('../../../src/services/chartRenderer.service');
 
+const app = require('../../../src/app');
 const mockChartRenderer = require('../../../src/services/chartRenderer.service');
+const mockBrowserService = require('../../../src/services/browser.service');
 
 describe('Chart API Routes', () => {
   const validApiKey = 'test-api-key';
 
   beforeAll(() => {
-    process.env.API_KEY = validApiKey;
-    process.env.NODE_ENV = 'test';
+    // Mock browser service methods
+    mockBrowserService.isReady = jest.fn().mockReturnValue(true);
+    mockBrowserService.initialize = jest.fn().mockResolvedValue({});
+    mockBrowserService.getPage = jest.fn().mockResolvedValue({
+      close: jest.fn(),
+    });
+    mockBrowserService.closePage = jest.fn().mockResolvedValue();
   });
 
   beforeEach(() => {
@@ -106,6 +116,91 @@ describe('Chart API Routes', () => {
 
       expect(response.body.name).toBe('Nocturna Chart Service');
       expect(response.body.endpoints).toBeDefined();
+    });
+  });
+
+  describe('POST /api/v1/chart/render/transit', () => {
+    test('should render transit chart with valid data', async () => {
+      const response = await request(app)
+        .post('/api/v1/chart/render/transit')
+        .set('Authorization', `Bearer ${validApiKey}`)
+        .send(sampleTransitChart)
+        .expect(200);
+
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.image).toBeDefined();
+      expect(response.body.data.chartInfo.type).toBe('transit');
+      expect(response.body.data.chartInfo.transitDatetime).toBeDefined();
+      expect(response.body.data.chartInfo.aspectsFound).toBeDefined();
+    });
+
+    test('should reject transit chart without authentication', async () => {
+      const response = await request(app)
+        .post('/api/v1/chart/render/transit')
+        .send(sampleTransitChart)
+        .expect(401);
+
+      expect(response.body.status).toBe('error');
+      expect(response.body.error.code).toBe('AUTHENTICATION_ERROR');
+    });
+
+    test('should reject invalid transit data', async () => {
+      const invalid = {
+        ...sampleTransitChart,
+        natal: { planets: {}, houses: [] }, // Invalid: missing required planets
+      };
+
+      const response = await request(app)
+        .post('/api/v1/chart/render/transit')
+        .set('Authorization', `Bearer ${validApiKey}`)
+        .send(invalid)
+        .expect(400);
+
+      expect(response.body.status).toBe('error');
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
+  describe('POST /api/v1/chart/render/synastry', () => {
+    test('should render synastry chart with valid data', async () => {
+      const response = await request(app)
+        .post('/api/v1/chart/render/synastry')
+        .set('Authorization', `Bearer ${validApiKey}`)
+        .send(sampleSynastryChart)
+        .expect(200);
+
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.image).toBeDefined();
+      expect(response.body.data.chartInfo.type).toBe('synastry');
+      expect(response.body.data.chartInfo.person1Name).toBe('John');
+      expect(response.body.data.chartInfo.person2Name).toBe('Jane');
+      expect(response.body.data.chartInfo.aspectsFound).toBeDefined();
+    });
+
+    test('should reject synastry chart without authentication', async () => {
+      const response = await request(app)
+        .post('/api/v1/chart/render/synastry')
+        .send(sampleSynastryChart)
+        .expect(401);
+
+      expect(response.body.status).toBe('error');
+      expect(response.body.error.code).toBe('AUTHENTICATION_ERROR');
+    });
+
+    test('should reject invalid synastry data', async () => {
+      const invalid = {
+        person1: sampleSynastryChart.person1,
+        // Missing person2
+      };
+
+      const response = await request(app)
+        .post('/api/v1/chart/render/synastry')
+        .set('Authorization', `Bearer ${validApiKey}`)
+        .send(invalid)
+        .expect(400);
+
+      expect(response.body.status).toBe('error');
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 

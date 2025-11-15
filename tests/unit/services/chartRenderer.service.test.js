@@ -56,6 +56,54 @@ describe('ChartRendererService', () => {
       expect(config.primaryAspectSettings).toBeDefined();
       expect(config.synastryAspectSettings).toBeDefined();
     });
+
+    test('should prepare synastry chart config', () => {
+      const chartData = {
+        person1: {
+          planets: { sun: { lon: 85.83 } },
+          houses: [{ lon: 300 }],
+        },
+        person2: {
+          planets: { moon: { lon: 120.5 } },
+          houses: [{ lon: 45 }],
+        },
+        synastrySettings: {
+          useHousesFrom: 'person1',
+          aspectSettings: {
+            person1: { enabled: true },
+            interaspects: { enabled: true },
+          },
+        },
+      };
+
+      const config = chartRendererService.prepareChartConfig(chartData, {});
+
+      expect(config.planets).toEqual(chartData.person1.planets);
+      expect(config.secondaryPlanets).toEqual(chartData.person2.planets);
+      expect(config.houses).toEqual(chartData.person1.houses);
+      expect(config.primaryAspectSettings).toBeDefined();
+      expect(config.synastryAspectSettings).toBeDefined();
+    });
+
+    test('should use person2 houses when specified in synastry', () => {
+      const chartData = {
+        person1: {
+          planets: { sun: { lon: 85.83 } },
+          houses: [{ lon: 300 }],
+        },
+        person2: {
+          planets: { moon: { lon: 120.5 } },
+          houses: [{ lon: 45 }],
+        },
+        synastrySettings: {
+          useHousesFrom: 'person2',
+        },
+      };
+
+      const config = chartRendererService.prepareChartConfig(chartData, {});
+
+      expect(config.houses).toEqual(chartData.person2.houses);
+    });
   });
 
   describe('injectDataIntoTemplate', () => {
@@ -67,6 +115,66 @@ describe('ChartRendererService', () => {
 
       expect(result).toContain('const chartConfig =');
       expect(result).toContain(JSON.stringify(config, null, 2));
+    });
+  });
+
+  describe('captureImage', () => {
+    let mockPage;
+    let mockElement;
+
+    beforeEach(() => {
+      mockElement = {
+        screenshot: jest.fn().mockResolvedValue(Buffer.from('fake-image-data')),
+      };
+      mockPage = {
+        $: jest.fn().mockResolvedValue(mockElement),
+      };
+    });
+
+    test('should capture PNG image with default options', async () => {
+      const buffer = await chartRendererService.captureImage(mockPage, {});
+
+      expect(mockPage.$).toHaveBeenCalledWith('#chart-container');
+      expect(mockElement.screenshot).toHaveBeenCalledWith({
+        type: 'png',
+        encoding: 'binary',
+        quality: 90,
+      });
+      expect(buffer).toBeInstanceOf(Buffer);
+    });
+
+    test('should capture JPEG image with custom quality', async () => {
+      await chartRendererService.captureImage(mockPage, {
+        format: 'jpeg',
+        quality: 80,
+      });
+
+      expect(mockElement.screenshot).toHaveBeenCalledWith({
+        type: 'jpeg',
+        encoding: 'binary',
+        quality: 80,
+      });
+    });
+
+    test('should capture PNG image when format is specified', async () => {
+      await chartRendererService.captureImage(mockPage, {
+        format: 'png',
+        quality: 95,
+      });
+
+      expect(mockElement.screenshot).toHaveBeenCalledWith({
+        type: 'png',
+        encoding: 'binary',
+        quality: 95,
+      });
+    });
+
+    test('should throw error when chart container not found', async () => {
+      mockPage.$.mockResolvedValue(null);
+
+      await expect(
+        chartRendererService.captureImage(mockPage, {})
+      ).rejects.toThrow('Chart container not found');
     });
   });
 });

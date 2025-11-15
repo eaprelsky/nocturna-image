@@ -77,7 +77,7 @@ const natalChartSchema = z.object({
   planets: planetsSchema,
   houses: housesSchema,
   aspectSettings: aspectSettingsSchema.optional(),
-  renderOptions: renderOptionsSchema.optional(),
+  renderOptions: renderOptionsSchema.optional().default({}),
 });
 
 // Transit chart request schema
@@ -97,7 +97,7 @@ const transitChartSchema = z.object({
       natalToTransit: aspectSettingsSchema.optional(),
     })
     .optional(),
-  renderOptions: renderOptionsSchema.optional(),
+  renderOptions: renderOptionsSchema.optional().default({}),
 });
 
 // Synastry chart request schema
@@ -123,8 +123,9 @@ const synastryChartSchema = z.object({
         })
         .optional(),
     })
-    .optional(),
-  renderOptions: renderOptionsSchema.optional(),
+    .optional()
+    .default({}),
+  renderOptions: renderOptionsSchema.optional().default({}),
 });
 
 module.exports = {

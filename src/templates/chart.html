@@ -13,9 +13,15 @@
 
     body {
       margin: 0;
-      padding: 20px;
+      padding: 0;
       background: white;
       font-family: Arial, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     body.dark {
@@ -28,10 +34,16 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      position: relative;
+      min-width: 400px;
+      min-height: 400px;
     }
 
     #chart-container svg {
+      display: block;
       max-width: 100%;
+      max-height: 100%;
+      width: auto;
       height: auto;
     }
   </style>
@@ -39,10 +51,13 @@
 <body>
   <div id="chart-container"></div>
 
-  <!-- Include nocturna-wheel library from CDN or local -->
-  <script src="https://unpkg.com/nocturna-wheel@^2.0.0/dist/nocturna-wheel.umd.js"></script>
+  <!-- Include nocturna-wheel library from local server (v3.0.2) -->
+  <script src="https://github.com/eaprelsky/nocturna-wheel/releases/download/v3.0.2/nocturna-wheel.min.js"></script>
 
   <script>
+    console.log('Starting chart rendering...');
+    console.log('NocturnaWheel available:', typeof NocturnaWheel);
+    
     /* CHART_CONFIG_PLACEHOLDER */
 
     // Apply theme to body
@@ -50,27 +65,20 @@
       document.body.classList.add('dark');
     }
 
+    // Set container dimensions explicitly
+    const container = document.getElementById('chart-container');
+    const width = chartConfig.renderOptions?.width || 800;
+    const height = chartConfig.renderOptions?.height || 800;
+    if (container) {
+      container.style.width = width + 'px';
+      container.style.height = height + 'px';
+    }
     // Create chart configuration for nocturna-wheel
+    // Start with minimal config like in README examples
     const wheelConfig = {
       container: '#chart-container',
       planets: chartConfig.planets || {},
-      houses: chartConfig.houses || [],
-      config: {
-        zodiacSettings: {
-          enabled: true
-        },
-        planetSettings: {
-          enabled: true
-        },
-        houseSettings: {
-          enabled: true
-        },
-        svg: {
-          width: chartConfig.renderOptions?.width || 800,
-          height: chartConfig.renderOptions?.height || 800,
-          viewBox: `0 0 ${chartConfig.renderOptions?.width || 800} ${chartConfig.renderOptions?.height || 800}`
-        }
-      }
+      houses: chartConfig.houses || []
     };
 
     // Add secondary planets if present (for transit/synastry)
@@ -78,120 +86,203 @@
       wheelConfig.secondaryPlanets = chartConfig.secondaryPlanets;
     }
 
-    // Configure aspects based on chart type
-    if (chartConfig.aspectSettings) {
-      // Simple natal chart
-      wheelConfig.config.primaryAspectSettings = {
-        enabled: chartConfig.aspectSettings.enabled !== false,
-        orb: chartConfig.aspectSettings.orb || 6,
-        types: {
-          conjunction: {
-            angle: 0,
-            orb: chartConfig.aspectSettings.types?.conjunction?.orb || 8,
-            color: chartConfig.aspectSettings.types?.conjunction?.color || '#000000',
-            enabled: chartConfig.aspectSettings.types?.conjunction?.enabled !== false,
-            lineStyle: chartConfig.aspectSettings.types?.conjunction?.lineStyle || 'none',
-            strokeWidth: chartConfig.aspectSettings.types?.conjunction?.strokeWidth || 1
-          },
-          opposition: {
-            angle: 180,
-            orb: chartConfig.aspectSettings.types?.opposition?.orb || 6,
-            color: chartConfig.aspectSettings.types?.opposition?.color || '#E41B17',
-            enabled: chartConfig.aspectSettings.types?.opposition?.enabled !== false,
-            lineStyle: chartConfig.aspectSettings.types?.opposition?.lineStyle || 'solid',
-            strokeWidth: chartConfig.aspectSettings.types?.opposition?.strokeWidth || 1
-          },
-          trine: {
-            angle: 120,
-            orb: chartConfig.aspectSettings.types?.trine?.orb || 6,
-            color: chartConfig.aspectSettings.types?.trine?.color || '#4CC417',
-            enabled: chartConfig.aspectSettings.types?.trine?.enabled !== false,
-            lineStyle: chartConfig.aspectSettings.types?.trine?.lineStyle || 'solid',
-            strokeWidth: chartConfig.aspectSettings.types?.trine?.strokeWidth || 1
-          },
-          square: {
-            angle: 90,
-            orb: chartConfig.aspectSettings.types?.square?.orb || 6,
-            color: chartConfig.aspectSettings.types?.square?.color || '#F62817',
-            enabled: chartConfig.aspectSettings.types?.square?.enabled !== false,
-            lineStyle: chartConfig.aspectSettings.types?.square?.lineStyle || 'dashed',
-            strokeWidth: chartConfig.aspectSettings.types?.square?.strokeWidth || 1
-          },
-          sextile: {
-            angle: 60,
-            orb: chartConfig.aspectSettings.types?.sextile?.orb || 4,
-            color: chartConfig.aspectSettings.types?.sextile?.color || '#56A5EC',
-            enabled: chartConfig.aspectSettings.types?.sextile?.enabled !== false,
-            lineStyle: chartConfig.aspectSettings.types?.sextile?.lineStyle || 'dashed',
-            strokeWidth: chartConfig.aspectSettings.types?.sextile?.strokeWidth || 1
-          }
-        }
+    // Always create config object to ensure proper initialization
+    wheelConfig.config = wheelConfig.config || {};
+
+    // SVG dimensions
+    if (chartConfig.renderOptions?.width) {
+      const svgSize = chartConfig.renderOptions.width;
+      wheelConfig.config.svg = {
+        width: svgSize,
+        height: svgSize
       };
     }
 
-    // Configure aspects for transit/synastry charts
-    if (chartConfig.primaryAspectSettings) {
-      wheelConfig.config.primaryAspectSettings = {
-        enabled: chartConfig.primaryAspectSettings.enabled !== false,
-        orb: chartConfig.primaryAspectSettings.orb || 6,
-        types: buildAspectTypes(chartConfig.primaryAspectSettings.types)
+    // Helper function to build aspect types configuration
+    // This function ALWAYS returns a complete types object with all required fields
+    function buildAspectTypes(types, defaultOrb = 6) {
+      const defaultAspects = {
+        conjunction: { angle: 0, orb: 8, color: '#000000', enabled: true, lineStyle: 'none', strokeWidth: 1 },
+        opposition: { angle: 180, orb: 6, color: '#E41B17', enabled: true, lineStyle: 'solid', strokeWidth: 1 },
+        trine: { angle: 120, orb: 6, color: '#4CC417', enabled: true, lineStyle: 'solid', strokeWidth: 1 },
+        square: { angle: 90, orb: 6, color: '#F62817', enabled: true, lineStyle: 'dashed', strokeWidth: 1 },
+        sextile: { angle: 60, orb: 4, color: '#56A5EC', enabled: true, lineStyle: 'dashed', strokeWidth: 1 }
       };
-    }
 
-    if (chartConfig.secondaryAspectSettings) {
-      wheelConfig.config.secondaryAspectSettings = {
-        enabled: chartConfig.secondaryAspectSettings.enabled !== false,
-        orb: chartConfig.secondaryAspectSettings.orb || 6,
-        types: buildAspectTypes(chartConfig.secondaryAspectSettings.types)
-      };
-    }
-
-    if (chartConfig.synastryAspectSettings) {
-      wheelConfig.config.synastryAspectSettings = {
-        enabled: chartConfig.synastryAspectSettings.enabled !== false,
-        orb: chartConfig.synastryAspectSettings.orb || 3,
-        types: buildAspectTypes(chartConfig.synastryAspectSettings.types)
-      };
-    }
-
-    function buildAspectTypes(types) {
+      // If no types provided, return defaults
       if (!types) {
-        return {
-          conjunction: { angle: 0, orb: 8, color: '#000000', enabled: true, lineStyle: 'none', strokeWidth: 1 },
-          opposition: { angle: 180, orb: 6, color: '#E41B17', enabled: true, lineStyle: 'solid', strokeWidth: 1 },
-          trine: { angle: 120, orb: 6, color: '#4CC417', enabled: true, lineStyle: 'solid', strokeWidth: 1 },
-          square: { angle: 90, orb: 6, color: '#F62817', enabled: true, lineStyle: 'dashed', strokeWidth: 1 },
-          sextile: { angle: 60, orb: 4, color: '#56A5EC', enabled: true, lineStyle: 'dashed', strokeWidth: 1 }
-        };
+        return defaultAspects;
       }
 
-      const defaultAspects = {
-        conjunction: { angle: 0, orb: 8, color: '#000000', lineStyle: 'none', strokeWidth: 1 },
-        opposition: { angle: 180, orb: 6, color: '#E41B17', lineStyle: 'solid', strokeWidth: 1 },
-        trine: { angle: 120, orb: 6, color: '#4CC417', lineStyle: 'solid', strokeWidth: 1 },
-        square: { angle: 90, orb: 6, color: '#F62817', lineStyle: 'dashed', strokeWidth: 1 },
-        sextile: { angle: 60, orb: 4, color: '#56A5EC', lineStyle: 'dashed', strokeWidth: 1 }
-      };
-
+      // Merge user types with defaults
       const result = {};
       for (const [name, defaults] of Object.entries(defaultAspects)) {
+        const userType = types[name] || {};
         result[name] = {
           ...defaults,
-          ...types[name],
-          enabled: types[name]?.enabled !== false
+          orb: userType.orb !== undefined ? userType.orb : (defaults.orb || defaultOrb),
+          enabled: userType.enabled !== false,
+          ...userType
         };
       }
 
       return result;
     }
 
+    // Configure aspects for natal chart
+    // Always provide primaryAspectSettings with types if aspect rendering is enabled
+    const aspectConfig = chartConfig.aspectSettings || chartConfig.primaryAspectSettings;
+    if (aspectConfig) {
+      if (aspectConfig.enabled !== false) {
+        wheelConfig.config.primaryAspectSettings = {
+          enabled: true,
+          orb: aspectConfig.orb || 6,
+          types: buildAspectTypes(aspectConfig.types, aspectConfig.orb || 6)
+        };
+        console.log('PrimaryAspectSettings configured with types:', Object.keys(wheelConfig.config.primaryAspectSettings.types));
+      } else {
+        wheelConfig.config.primaryAspectSettings = {
+          enabled: false
+        };
+      }
+    } else {
+      // If no aspect settings provided, use defaults with types
+      wheelConfig.config.primaryAspectSettings = {
+        enabled: true,
+        orb: 6,
+        types: buildAspectTypes(null, 6)
+      };
+      console.log('Using default PrimaryAspectSettings with types:', Object.keys(wheelConfig.config.primaryAspectSettings.types));
+    }
+
+    // Configure aspects for transit/synastry charts
+    if (chartConfig.secondaryAspectSettings) {
+      if (chartConfig.secondaryAspectSettings.enabled !== false) {
+        wheelConfig.config.secondaryAspectSettings = {
+          enabled: true,
+          orb: chartConfig.secondaryAspectSettings.orb || 6,
+          types: buildAspectTypes(chartConfig.secondaryAspectSettings.types, chartConfig.secondaryAspectSettings.orb || 6)
+        };
+      } else {
+        wheelConfig.config.secondaryAspectSettings = {
+          enabled: false
+        };
+      }
+    }
+
+    if (chartConfig.synastryAspectSettings) {
+      if (chartConfig.synastryAspectSettings.enabled !== false) {
+        wheelConfig.config.synastryAspectSettings = {
+          enabled: true,
+          orb: chartConfig.synastryAspectSettings.orb || 3,
+          types: buildAspectTypes(chartConfig.synastryAspectSettings.types, chartConfig.synastryAspectSettings.orb || 3)
+        };
+      } else {
+        wheelConfig.config.synastryAspectSettings = {
+          enabled: false
+        };
+      }
+    }
+
     // Create and render the chart
     try {
+      // Validate that NocturnaWheel is available
+      if (typeof NocturnaWheel === 'undefined') {
+        throw new Error('NocturnaWheel library is not loaded');
+      }
+
+      // Validate that WheelChart is available
+      if (!NocturnaWheel.WheelChart) {
+        console.error('NocturnaWheel available keys:', Object.keys(NocturnaWheel));
+        throw new Error('WheelChart class is not available in NocturnaWheel');
+      }
+
+      // Validate required data
+      if (!wheelConfig.planets || Object.keys(wheelConfig.planets).length === 0) {
+        throw new Error('No planets data provided');
+      }
+
+      if (!wheelConfig.houses || wheelConfig.houses.length === 0) {
+        throw new Error('No houses data provided');
+      }
+
+      // Log final configuration to verify types are included
+      console.log('Creating WheelChart with config:', JSON.stringify(wheelConfig, null, 2));
+      console.log('PrimaryAspectSettings:', wheelConfig.config?.primaryAspectSettings);
+      console.log('NocturnaWheel keys:', Object.keys(NocturnaWheel));
+      
+      // Verify that types are present in primaryAspectSettings
+      if (wheelConfig.config?.primaryAspectSettings && !wheelConfig.config.primaryAspectSettings.types) {
+        console.error('ERROR: primaryAspectSettings.types is missing!');
+        console.error('primaryAspectSettings:', wheelConfig.config.primaryAspectSettings);
+      }
+      
+      // V3 API uses WheelChart class
       const chart = new NocturnaWheel.WheelChart(wheelConfig);
-      chart.render();
+      console.log('Chart object created:', chart);
+      console.log('Chart methods:', Object.keys(chart));
+      
+      console.log('Calling chart.render()...');
+      const renderResult = chart.render();
+      console.log('Render result:', renderResult);
       console.log('Chart rendered successfully');
+      
+      // Give library time to complete rendering (might be asynchronous)
+      // This will be handled by Puppeteer's waitForFunction
+      
+      // Library might need a moment to complete rendering
+      // Wait a bit before checking content
+      
+      // Debug: Check what was actually rendered
+      const checkSVGContent = () => {
+        const svg = document.querySelector('#chart-container svg');
+        const allSVGs = document.querySelectorAll('svg');
+        
+        console.log(`Total SVG elements in document: ${allSVGs.length}`);
+        allSVGs.forEach((s, i) => {
+          console.log(`SVG ${i}: ${s.children.length} children, parent: ${s.parentElement?.id || s.parentElement?.tagName}`);
+        });
+        
+        if (svg) {
+          const images = svg.querySelectorAll('image').length;
+          const paths = svg.querySelectorAll('path').length;
+          const lines = svg.querySelectorAll('line').length;
+          const texts = svg.querySelectorAll('text').length;
+          const groups = svg.querySelectorAll('g').length;
+          const allElements = svg.querySelectorAll('*').length;
+          
+          console.log(`SVG content check: images=${images}, paths=${paths}, lines=${lines}, texts=${texts}, groups=${groups}, total=${allElements}`);
+          
+          // Check each group
+          svg.querySelectorAll('g[id^="group-"]').forEach(g => {
+            console.log(`Group ${g.id}: ${g.children.length} children`);
+            if (g.children.length > 0) {
+              console.log(`  First child: ${g.children[0].tagName}`);
+              // Log all children for debugging
+              Array.from(g.children).forEach((child, idx) => {
+                console.log(`    Child ${idx}: ${child.tagName} ${child.id || ''} ${child.className || ''}`);
+              });
+            }
+          });
+          
+          // Check if chart object has any methods we should call
+          if (typeof chart.getSVG === 'function') {
+            console.log('Chart has getSVG method');
+          }
+          if (typeof chart.update === 'function') {
+            console.log('Chart has update method');
+          }
+        } else {
+          console.error('SVG element not found after render!');
+        }
+      };
+      
+      // Check after render completes
+      checkSVGContent();
+      
     } catch (error) {
       console.error('Error rendering chart:', error);
+      console.error('Error stack:', error.stack);
       document.getElementById('chart-container').innerHTML = 
         '<div style="color: red; padding: 20px;">Error rendering chart: ' + error.message + '</div>';
     }

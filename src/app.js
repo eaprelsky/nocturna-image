@@ -14,6 +14,10 @@ const app = express();
 app.use(cors(config.cors));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Library is loaded from CDN (v3.0.1 includes inline icons) - no static assets required
+logger.info('Using nocturna-wheel v3.0.1 from CDN with built-in inline icons');
+
 app.use(requestLogger);
 
 // Rate limiting

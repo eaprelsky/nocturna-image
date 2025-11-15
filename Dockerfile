@@ -34,14 +34,14 @@ COPY . .
 # Set environment variables
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3011
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3011
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+  CMD node -e "require('http').get('http://localhost:3011/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 # Run as non-root user
 RUN useradd -m -u 1000 appuser && \

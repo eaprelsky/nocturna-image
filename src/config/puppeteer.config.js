@@ -2,7 +2,9 @@ const config = require('./index');
 
 const puppeteerConfig = {
   headless: 'new',
-  executablePath: config.puppeteer.executablePath,
+  // Only use executablePath if explicitly set, otherwise let Puppeteer use its bundled Chromium
+  // This avoids issues with broken system Chromium installations (e.g., snap in WSL)
+  ...(config.puppeteer.executablePath && { executablePath: config.puppeteer.executablePath }),
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
