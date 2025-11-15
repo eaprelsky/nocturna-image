@@ -2,6 +2,7 @@ node_modules
 npm-debug.log
 .env
 .env.local
+.env.example
 .git
 .gitignore
 README.md
@@ -17,7 +18,7 @@ coverage
 tests
 *.test.js
 jest.config.js
-.eslintrc.js
+eslint.config.js
 .prettierrc
 logs
 *.log
@@ -26,4 +27,18 @@ temp
 .cache
 dist
 build
+
+# Documentation (not needed in production container)
+docs/
+QUICKSTART.md
+CONTRIBUTING.md
+CHANGELOG.md
+PROJECT_STRUCTURE.md
+nocturna-image-req.md
+SETUP_COMPLETE.md
+openapi.yaml
+
+# Debug files
+debug*.html
+*.debug.html
 

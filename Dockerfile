@@ -1,7 +1,12 @@
 FROM node:20-slim
 
+# Add metadata
+LABEL maintainer="Nocturna Project"
+LABEL description="Chart rendering service for astrological charts"
+LABEL version="1.0.0"
+
 # Install Chrome dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
     fonts-noto-color-emoji \
@@ -22,19 +27,24 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Copy package files
+# Create non-root user early (for better security)
+RUN useradd -m -u 1000 appuser
+
+# Copy package files first (for better layer caching)
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --only=production && \
+    npm cache clean --force
 
 # Copy application files
-COPY . .
+COPY --chown=appuser:appuser . .
 
 # Set environment variables
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV NODE_ENV=production
-ENV PORT=3011
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    NODE_ENV=production \
+    PORT=3011 \
+    HOST=0.0.0.0
 
 # Expose port
 EXPOSE 3011
@@ -43,9 +53,7 @@ EXPOSE 3011
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3011/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Run as non-root user
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+# Switch to non-root user
 USER appuser
 
 # Start application
