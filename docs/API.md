@@ -32,16 +32,16 @@ Authorization: Bearer YOUR_API_KEY
 ```json
 {
   "planets": {
-    "sun": { "lon": 85.83, "lat": 0.0 },
-    "moon": { "lon": 133.21, "lat": 5.12 },
-    "mercury": { "lon": 95.45, "lat": -2.3 },
-    "venus": { "lon": 110.20, "lat": 1.5 },
-    "mars": { "lon": 45.30, "lat": -0.8 },
-    "jupiter": { "lon": 200.15, "lat": 0.5 },
-    "saturn": { "lon": 290.45, "lat": 2.1 },
-    "uranus": { "lon": 15.60, "lat": -0.3 },
-    "neptune": { "lon": 325.80, "lat": 1.2 },
-    "pluto": { "lon": 270.25, "lat": 15.0 }
+    "sun": { "lon": 85.83, "lat": 0.0, "retrograde": false },
+    "moon": { "lon": 133.21, "lat": 5.12, "retrograde": false },
+    "mercury": { "lon": 95.45, "lat": -2.3, "retrograde": true },
+    "venus": { "lon": 110.20, "lat": 1.5, "retrograde": false },
+    "mars": { "lon": 45.30, "lat": -0.8, "retrograde": true },
+    "jupiter": { "lon": 200.15, "lat": 0.5, "retrograde": false },
+    "saturn": { "lon": 290.45, "lat": 2.1, "retrograde": false },
+    "uranus": { "lon": 15.60, "lat": -0.3, "retrograde": false },
+    "neptune": { "lon": 325.80, "lat": 1.2, "retrograde": false },
+    "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false }
   },
   "houses": [
     { "lon": 300.32 },
@@ -279,6 +279,7 @@ chart_render_duration_seconds_bucket{type="natal",le="3"} 1200
 ### Planet Coordinates
 - `lon` (longitude): 0.0 - 360.0 (required)
 - `lat` (latitude): -90.0 - 90.0 (optional, default: 0.0)
+- `retrograde` (retrograde status): boolean (optional, default: false) - When true, a small 'R' symbol appears next to the planet icon
 
 ### Houses
 - Must provide exactly 12 house cusps

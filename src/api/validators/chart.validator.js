@@ -4,6 +4,7 @@ const { z } = require('zod');
 const planetSchema = z.object({
   lon: z.number().min(0).max(360),
   lat: z.number().min(-90).max(90).optional().default(0),
+  retrograde: z.boolean().optional().default(false),
 });
 
 // House cusp schema

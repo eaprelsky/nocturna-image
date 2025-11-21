@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Support for retrograde planets - new optional `retrograde` boolean field in planet data
+  - When set to `true`, a small 'R' symbol appears next to the planet icon on the chart
+  - Defaults to `false` for backward compatibility
+  - Works with natal, transit, and synastry charts
+- Updated to nocturna-wheel v3.1.0 with retrograde planet support
+
 ### Planned
 - Caching layer for identical chart requests
 - Support for SVG and JPEG output formats
