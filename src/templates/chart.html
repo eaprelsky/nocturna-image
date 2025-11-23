@@ -74,11 +74,12 @@
       container.style.height = height + 'px';
     }
     // Create chart configuration for nocturna-wheel
-    // Start with minimal config like in README examples
+    // Library expects houses as array of OBJECTS with {lon: X} format
+    // Keep houses in the original format from API
     const wheelConfig = {
-      container: '#chart-container',
+      container: '#chart-container',  // CSS selector with '#'
       planets: chartConfig.planets || {},
-      houses: chartConfig.houses || []
+      houses: chartConfig.houses || []  // Keep as objects: [{lon: 123}, {lon: 456}, ...]
     };
 
     // Add secondary planets if present (for transit/synastry)
@@ -217,10 +218,35 @@
         console.error('primaryAspectSettings:', wheelConfig.config.primaryAspectSettings);
       }
       
-      // V3 API uses WheelChart class
-      const chart = new NocturnaWheel.WheelChart(wheelConfig);
-      console.log('Chart object created:', chart);
-      console.log('Chart methods:', Object.keys(chart));
+      // Create chart instance
+      // Support both import styles (default export vs named export)
+      const WheelChart = NocturnaWheel.WheelChart || NocturnaWheel;
+      let chart;
+      
+      // Prepare ascendant value for rotation
+      let ascendant = 0;
+      if (wheelConfig.houses && wheelConfig.houses.length > 0) {
+        const h1 = wheelConfig.houses[0];
+        ascendant = (typeof h1 === 'object' && 'lon' in h1) ? h1.lon : h1;
+      }
+      
+      // Add astronomicalData to config which might be required for proper rotation in some versions
+      wheelConfig.astronomicalData = {
+        ascendant: ascendant
+      };
+      
+      try {
+        chart = new WheelChart(wheelConfig);
+        
+        // Explicitly set rotation if method exists - this ensures the Ascendant is at 9 o'clock
+        if (typeof chart.setHouseRotation === 'function') {
+            chart.setHouseRotation(ascendant);
+        }
+
+      } catch (e) {
+        console.error('Error creating chart:', e);
+        throw e;
+      }
       
       console.log('Calling chart.render()...');
       const renderResult = chart.render();
@@ -229,6 +255,8 @@
       
       // Give library time to complete rendering (might be asynchronous)
       // This will be handled by Puppeteer's waitForFunction
+      // The library automatically calculates ascendantAlignmentOffset from houseCusps
+      // to position the Ascendant at the top of the chart
       
       // Library might need a moment to complete rendering
       // Wait a bit before checking content

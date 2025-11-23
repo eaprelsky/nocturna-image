@@ -65,92 +65,92 @@
     const chartConfig = {
   "planets": {
     "sun": {
-      "lon": 239.6457699801843,
-      "lat": -0.00012921558555473248,
+      "lon": 241.3406280999424,
+      "lat": -0.00011869253330572083,
       "retrograde": false
     },
     "moon": {
-      "lon": 255.222121658499,
-      "lat": -5.001154890713223,
+      "lon": 275.27681594926,
+      "lat": -4.689856820708748,
       "retrograde": false
     },
     "mercury": {
-      "lon": 236.53205543309548,
-      "lat": 0.9778363103844689,
+      "lon": 234.46312266942212,
+      "lat": 1.478140653311845,
       "retrograde": true
     },
     "venus": {
-      "lon": 228.52923049879692,
-      "lat": 1.017106184608169,
+      "lon": 230.63618541528228,
+      "lat": 0.9645105986217349,
       "retrograde": false
     },
     "mars": {
-      "lon": 252.44754601086527,
-      "lat": -0.5841959263645075,
+      "lon": 253.6786185763702,
+      "lat": -0.5988478177357036,
       "retrograde": false
     },
     "jupiter": {
-      "lon": 114.98461400923898,
-      "lat": 0.13554254591244858,
+      "lon": 114.9239216220301,
+      "lat": 0.13979368381064042,
       "retrograde": true
     },
     "saturn": {
-      "lon": 355.1946809672794,
-      "lat": -2.400625455348326,
+      "lon": 355.17789028652453,
+      "lat": -2.3948317102689214,
       "retrograde": true
     },
     "uranus": {
-      "lon": 59.4373092330648,
-      "lat": -0.206609732104031,
+      "lon": 59.36712366089186,
+      "lat": -0.2063372077729812,
       "retrograde": true
     },
     "neptune": {
-      "lon": 359.4717497862554,
-      "lat": -1.3580189909780196,
+      "lon": 359.45502734632703,
+      "lat": -1.3570487973611873,
       "retrograde": true
     },
     "pluto": {
-      "lon": 301.7191360303853,
-      "lat": -3.7640611370294486,
+      "lon": 301.7497219909443,
+      "lat": -3.7636828069160573,
       "retrograde": false
     }
   },
   "houses": [
     {
-      "lon": 117.72333166901308
+      "lon": 295.1516242225912
     },
     {
-      "lon": 131.86460628096734
+      "lon": 3.102365841761886
     },
     {
-      "lon": 149.95488604615085
+      "lon": 42.06719044663453
     },
     {
-      "lon": 175.92066343768613
+      "lon": 63.65125994105938
     },
     {
-      "lon": 215.3184974169257
+      "lon": 79.66039743818402
     },
     {
-      "lon": 262.9731869085731
+      "lon": 94.9625569362197
     },
     {
-      "lon": 297.7233316690131
+      "lon": 115.15162422259118
     },
     {
-      "lon": 311.86460628096734
+      "lon": 183.1023658417619
     },
     {
-      "lon": 329.9548860461508
+      "lon": 222.06719044663453
     },
     {
-      "lon": 355.92066343768613
+      "lon": 243.65125994105938
     },
     {
-      "lon": 35.31849741692572
+      "lon": 259.660397438184
     },
     {
-      "lon": 82.97318690857313
+      "lon": 274.9625569362197
     }
   ],
   "aspectSettings": {
@@ -195,12 +195,19 @@
       container.style.height = height + 'px';
     }
     // Create chart configuration for nocturna-wheel
-    // Start with minimal config like in README examples
+    // Library expects houses as array of OBJECTS with {lon: X} format
+    // Keep houses in the original format from API
     const wheelConfig = {
-      container: '#chart-container',
+      container: '#chart-container',  // CSS selector with '#'
       planets: chartConfig.planets || {},
-      houses: chartConfig.houses || []
+      houses: chartConfig.houses || []  // Keep as objects: [{lon: 123}, {lon: 456}, ...]
     };
+    
+    // Debug: Log houses being passed to library
+    console.log('Houses passed to NocturnaWheel (as objects):', wheelConfig.houses);
+    if (wheelConfig.houses && wheelConfig.houses.length > 0) {
+      console.log('First house (Ascendant):', wheelConfig.houses[0]);
+    }
 
     // Add secondary planets if present (for transit/synastry)
     if (chartConfig.secondaryPlanets) {
@@ -338,10 +345,45 @@
         console.error('primaryAspectSettings:', wheelConfig.config.primaryAspectSettings);
       }
       
-      // V3 API uses WheelChart class
-      const chart = new NocturnaWheel.WheelChart(wheelConfig);
-      console.log('Chart object created:', chart);
-      console.log('Chart methods:', Object.keys(chart));
+      // Create chart instance
+      // Support both import styles (default export vs named export)
+      const WheelChart = NocturnaWheel.WheelChart || NocturnaWheel;
+      let chart;
+      
+      // Prepare ascendant value for rotation
+      let ascendant = 0;
+      if (wheelConfig.houses && wheelConfig.houses.length > 0) {
+        const h1 = wheelConfig.houses[0];
+        ascendant = (typeof h1 === 'object' && 'lon' in h1) ? h1.lon : h1;
+      }
+      
+      // Add astronomicalData to config which might be required for proper rotation in some versions
+      wheelConfig.astronomicalData = {
+        ascendant: ascendant
+      };
+      
+      try {
+        console.log('Creating chart with config:', JSON.stringify({
+          ...wheelConfig,
+          planets: 'Object with ' + Object.keys(wheelConfig.planets).length + ' planets',
+          houses: 'Array with ' + wheelConfig.houses.length + ' houses'
+        }, null, 2));
+
+        chart = new WheelChart(wheelConfig);
+        console.log('Chart created successfully');
+        
+        // Explicitly set rotation if method exists - this ensures the Ascendant is at 9 o'clock
+        if (typeof chart.setHouseRotation === 'function') {
+            console.log('Explicitly setting house rotation to:', ascendant);
+            chart.setHouseRotation(ascendant);
+        } else {
+            console.log('setHouseRotation method not available on chart instance');
+        }
+
+      } catch (e) {
+        console.error('Error creating chart:', e);
+        throw e;
+      }
       
       console.log('Calling chart.render()...');
       const renderResult = chart.render();
@@ -350,6 +392,8 @@
       
       // Give library time to complete rendering (might be asynchronous)
       // This will be handled by Puppeteer's waitForFunction
+      // The library automatically calculates ascendantAlignmentOffset from houseCusps
+      // to position the Ascendant at the top of the chart
       
       // Library might need a moment to complete rendering
       // Wait a bit before checking content
