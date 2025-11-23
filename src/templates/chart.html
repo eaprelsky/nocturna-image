@@ -219,30 +219,14 @@
       }
       
       // Create chart instance
-      // Support both import styles (default export vs named export)
-      const WheelChart = NocturnaWheel.WheelChart || NocturnaWheel;
+      // The library exports a NocturnaWheel object with all components
+      const { WheelChart } = NocturnaWheel;
       let chart;
       
-      // Prepare ascendant value for rotation
-      let ascendant = 0;
-      if (wheelConfig.houses && wheelConfig.houses.length > 0) {
-        const h1 = wheelConfig.houses[0];
-        ascendant = (typeof h1 === 'object' && 'lon' in h1) ? h1.lon : h1;
-      }
-      
-      // Add astronomicalData to config which might be required for proper rotation in some versions
-      wheelConfig.astronomicalData = {
-        ascendant: ascendant
-      };
-      
       try {
+        // Since v4.0.0, the library automatically rotates the wheel
+        // to position the Ascendant (houses[0]) at 9 o'clock
         chart = new WheelChart(wheelConfig);
-        
-        // Explicitly set rotation if method exists - this ensures the Ascendant is at 9 o'clock
-        if (typeof chart.setHouseRotation === 'function') {
-            chart.setHouseRotation(ascendant);
-        }
-
       } catch (e) {
         console.error('Error creating chart:', e);
         throw e;
