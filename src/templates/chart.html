@@ -131,20 +131,38 @@
     }
 
     // Configure aspects for natal chart
-    // Always provide primaryAspectSettings with types if aspect rendering is enabled
-    const aspectConfig = chartConfig.aspectSettings || chartConfig.primaryAspectSettings;
+    // For dual charts (transit/synastry), primaryAspectSettings comes from chartConfig.primaryAspectSettings
+    // For single charts (natal), it comes from chartConfig.aspectSettings
+    // IMPORTANT: Check primaryAspectSettings first because aspectSettings for transit charts
+    // is an object with nested settings (natal, transit, natalToTransit) without top-level 'enabled'
+    
+    // DEBUG: Log what we have in chartConfig
+    console.log('DEBUG: chartConfig.aspectSettings =', JSON.stringify(chartConfig.aspectSettings));
+    console.log('DEBUG: chartConfig.primaryAspectSettings =', JSON.stringify(chartConfig.primaryAspectSettings));
+    
+    const aspectConfig = chartConfig.primaryAspectSettings || chartConfig.aspectSettings;
+    console.log('DEBUG: aspectConfig =', JSON.stringify(aspectConfig));
+    
     if (aspectConfig) {
-      if (aspectConfig.enabled !== false) {
-        wheelConfig.config.primaryAspectSettings = {
-          enabled: true,
-          orb: aspectConfig.orb || 6,
-          types: buildAspectTypes(aspectConfig.types, aspectConfig.orb || 6)
-        };
+      // Check if aspects are enabled (default to true if not specified)
+      console.log('DEBUG: aspectConfig.enabled =', aspectConfig.enabled);
+      console.log('DEBUG: aspectConfig.enabled !== false =', aspectConfig.enabled !== false);
+      const aspectsEnabled = aspectConfig.enabled !== false;
+      console.log('DEBUG: aspectsEnabled =', aspectsEnabled);
+      
+      wheelConfig.config.primaryAspectSettings = {
+        enabled: aspectsEnabled,
+        orb: aspectConfig.orb || 6
+      };
+      
+      console.log('DEBUG: wheelConfig.config.primaryAspectSettings after setting =', JSON.stringify(wheelConfig.config.primaryAspectSettings));
+      
+      // Only add types if aspects are enabled
+      if (aspectsEnabled) {
+        wheelConfig.config.primaryAspectSettings.types = buildAspectTypes(aspectConfig.types, aspectConfig.orb || 6);
         console.log('PrimaryAspectSettings configured with types:', Object.keys(wheelConfig.config.primaryAspectSettings.types));
       } else {
-        wheelConfig.config.primaryAspectSettings = {
-          enabled: false
-        };
+        console.log('PrimaryAspectSettings DISABLED');
       }
     } else {
       // If no aspect settings provided, use defaults with types
@@ -158,30 +176,40 @@
 
     // Configure aspects for transit/synastry charts
     if (chartConfig.secondaryAspectSettings) {
-      if (chartConfig.secondaryAspectSettings.enabled !== false) {
-        wheelConfig.config.secondaryAspectSettings = {
-          enabled: true,
-          orb: chartConfig.secondaryAspectSettings.orb || 6,
-          types: buildAspectTypes(chartConfig.secondaryAspectSettings.types, chartConfig.secondaryAspectSettings.orb || 6)
-        };
+      const secondaryEnabled = chartConfig.secondaryAspectSettings.enabled !== false;
+      
+      wheelConfig.config.secondaryAspectSettings = {
+        enabled: secondaryEnabled,
+        orb: chartConfig.secondaryAspectSettings.orb || 6
+      };
+      
+      if (secondaryEnabled) {
+        wheelConfig.config.secondaryAspectSettings.types = buildAspectTypes(
+          chartConfig.secondaryAspectSettings.types, 
+          chartConfig.secondaryAspectSettings.orb || 6
+        );
+        console.log('SecondaryAspectSettings configured with types:', Object.keys(wheelConfig.config.secondaryAspectSettings.types));
       } else {
-        wheelConfig.config.secondaryAspectSettings = {
-          enabled: false
-        };
+        console.log('SecondaryAspectSettings DISABLED');
       }
     }
 
     if (chartConfig.synastryAspectSettings) {
-      if (chartConfig.synastryAspectSettings.enabled !== false) {
-        wheelConfig.config.synastryAspectSettings = {
-          enabled: true,
-          orb: chartConfig.synastryAspectSettings.orb || 3,
-          types: buildAspectTypes(chartConfig.synastryAspectSettings.types, chartConfig.synastryAspectSettings.orb || 3)
-        };
+      const synastryEnabled = chartConfig.synastryAspectSettings.enabled !== false;
+      
+      wheelConfig.config.synastryAspectSettings = {
+        enabled: synastryEnabled,
+        orb: chartConfig.synastryAspectSettings.orb || 3
+      };
+      
+      if (synastryEnabled) {
+        wheelConfig.config.synastryAspectSettings.types = buildAspectTypes(
+          chartConfig.synastryAspectSettings.types, 
+          chartConfig.synastryAspectSettings.orb || 3
+        );
+        console.log('SynastryAspectSettings configured with types:', Object.keys(wheelConfig.config.synastryAspectSettings.types));
       } else {
-        wheelConfig.config.synastryAspectSettings = {
-          enabled: false
-        };
+        console.log('SynastryAspectSettings DISABLED');
       }
     }
 

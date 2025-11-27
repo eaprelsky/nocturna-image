@@ -8,19 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Biwheel chart support** - new generic dual chart endpoint (`POST /api/v1/chart/render/biwheel`)
+  - Flexible dual-wheel charts for progressions, solar returns, lunar returns, and more
+  - Independent aspect settings for inner circle, outer circle, and cross-aspects
+  - Optional outer chart houses (defaults to inner chart houses if not provided)
+  - Configurable house source (`useHousesFrom`: "inner" or "outer")
+  - Comprehensive documentation in `docs/BIWHEEL_CHARTS.md`
 - Support for retrograde planets - new optional `retrograde` boolean field in planet data
   - When set to `true`, a small 'R' symbol appears next to the planet icon on the chart
   - Defaults to `false` for backward compatibility
-  - Works with natal, transit, and synastry charts
+  - Works with natal, transit, synastry, and biwheel charts
 - Updated to nocturna-wheel v3.1.0 with retrograde planet support
 
 ### Planned
 - Caching layer for identical chart requests
-- Support for SVG and JPEG output formats
-- Dark theme support
 - Additional celestial bodies (Lilith, Chiron, North Node)
 - Async rendering queue system
-- Progressive and composite charts
+- Composite chart calculations
 
 ## [1.0.0] - 2025-11-10
 

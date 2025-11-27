@@ -129,9 +129,38 @@ const synastryChartSchema = z.object({
   renderOptions: renderOptionsSchema.optional().default({}),
 });
 
+// Biwheel chart request schema (generic dual chart)
+const biwheelChartSchema = z.object({
+  inner: z.object({
+    name: z.string().optional(),
+    planets: planetsSchema,
+    houses: housesSchema,
+  }),
+  outer: z.object({
+    name: z.string().optional(),
+    planets: planetsSchema,
+    houses: housesSchema.optional(), // Outer houses are optional - can use inner houses
+  }),
+  biwheelSettings: z
+    .object({
+      useHousesFrom: z.enum(['inner', 'outer']).optional().default('inner'),
+      aspectSettings: z
+        .object({
+          inner: aspectSettingsSchema.optional(),
+          outer: aspectSettingsSchema.optional(),
+          crossAspects: aspectSettingsSchema.optional(),
+        })
+        .optional(),
+    })
+    .optional()
+    .default({}),
+  renderOptions: renderOptionsSchema.optional().default({}),
+});
+
 module.exports = {
   natalChartSchema,
   transitChartSchema,
   synastryChartSchema,
+  biwheelChartSchema,
 };
 

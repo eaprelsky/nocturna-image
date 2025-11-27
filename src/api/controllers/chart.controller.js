@@ -134,6 +134,55 @@ class ChartController {
       next(error);
     }
   }
+
+  async renderBiwheelChart(req, res, next) {
+    try {
+      const chartData = {
+        chartType: 'biwheel',
+        inner: req.body.inner,
+        outer: req.body.outer,
+        biwheelSettings: req.body.biwheelSettings,
+      };
+
+      const renderOptions = req.body.renderOptions || {};
+
+      const result = await chartRendererService.renderChart(chartData, renderOptions);
+
+      // Count aspects (placeholder - would need actual aspect calculation)
+      const aspectsFound = {
+        crossAspects: 0, // Would be calculated
+        inner: 0,
+        outer: 0,
+      };
+
+      res.status(200).json({
+        status: 'success',
+        data: {
+          image: result.image,
+          format: result.format,
+          size: result.size,
+          dimensions: result.dimensions,
+          generatedAt: new Date().toISOString(),
+          chartInfo: {
+            type: 'biwheel',
+            innerName: req.body.inner.name,
+            outerName: req.body.outer.name,
+            aspectsFound,
+          },
+        },
+        meta: {
+          renderTime: result.renderTime,
+          version: '1.0.0',
+        },
+      });
+    } catch (error) {
+      logger.error('Biwheel chart render failed', {
+        requestId: req.id,
+        error: error.message,
+      });
+      next(error);
+    }
+  }
 }
 
 module.exports = new ChartController();

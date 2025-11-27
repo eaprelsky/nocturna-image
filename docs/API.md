@@ -211,7 +211,155 @@ Generate a synastry chart comparing two people's natal charts.
 }
 ```
 
-### 4. Health Check
+### 4. Render Biwheel Chart
+
+Generate a generic biwheel (dual) chart with two sets of planetary positions. This is a flexible endpoint that can be used for any type of dual chart comparison (transits, progressions, solar returns, etc.).
+
+**Endpoint:** `POST /api/v1/chart/render/biwheel`
+
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Request Body:**
+```json
+{
+  "inner": {
+    "name": "Natal Chart",
+    "planets": {
+      "sun": { "lon": 85.83, "lat": 0.0, "retrograde": false },
+      "moon": { "lon": 133.21, "lat": 5.12, "retrograde": false },
+      "mercury": { "lon": 95.45, "lat": -2.3, "retrograde": true },
+      "venus": { "lon": 110.20, "lat": 1.5, "retrograde": false },
+      "mars": { "lon": 45.30, "lat": -0.8, "retrograde": true },
+      "jupiter": { "lon": 200.15, "lat": 0.5, "retrograde": false },
+      "saturn": { "lon": 290.45, "lat": 2.1, "retrograde": false },
+      "uranus": { "lon": 15.60, "lat": -0.3, "retrograde": false },
+      "neptune": { "lon": 325.80, "lat": 1.2, "retrograde": false },
+      "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false }
+    },
+    "houses": [
+      { "lon": 300.32 },
+      { "lon": 330.15 },
+      { "lon": 355.24 },
+      { "lon": 20.32 },
+      { "lon": 45.15 },
+      { "lon": 75.24 },
+      { "lon": 120.32 },
+      { "lon": 150.15 },
+      { "lon": 175.24 },
+      { "lon": 200.32 },
+      { "lon": 225.15 },
+      { "lon": 255.24 }
+    ]
+  },
+  "outer": {
+    "name": "Progressed Chart",
+    "planets": {
+      "sun": { "lon": 115.20, "lat": 0.0, "retrograde": false },
+      "moon": { "lon": 200.45, "lat": 4.8, "retrograde": false },
+      "mercury": { "lon": 125.30, "lat": -1.5, "retrograde": false },
+      "venus": { "lon": 140.50, "lat": 2.0, "retrograde": false },
+      "mars": { "lon": 75.80, "lat": -1.2, "retrograde": false },
+      "jupiter": { "lon": 210.30, "lat": 0.8, "retrograde": false },
+      "saturn": { "lon": 295.60, "lat": 2.3, "retrograde": false },
+      "uranus": { "lon": 18.40, "lat": -0.5, "retrograde": false },
+      "neptune": { "lon": 327.90, "lat": 1.4, "retrograde": false },
+      "pluto": { "lon": 272.10, "lat": 14.8, "retrograde": false }
+    }
+  },
+  "biwheelSettings": {
+    "useHousesFrom": "inner",
+    "aspectSettings": {
+      "inner": {
+        "enabled": true,
+        "orb": 6,
+        "types": {
+          "conjunction": { "enabled": true },
+          "opposition": { "enabled": true },
+          "trine": { "enabled": true },
+          "square": { "enabled": true },
+          "sextile": { "enabled": true }
+        }
+      },
+      "outer": {
+        "enabled": true,
+        "orb": 6,
+        "types": {
+          "conjunction": { "enabled": true },
+          "opposition": { "enabled": true },
+          "trine": { "enabled": true },
+          "square": { "enabled": true },
+          "sextile": { "enabled": true }
+        }
+      },
+      "crossAspects": {
+        "enabled": true,
+        "orb": 3,
+        "types": {
+          "conjunction": { "enabled": true },
+          "opposition": { "enabled": true },
+          "trine": { "enabled": true },
+          "square": { "enabled": true },
+          "sextile": { "enabled": true }
+        }
+      }
+    }
+  },
+  "renderOptions": {
+    "format": "png",
+    "width": 1000,
+    "height": 1000,
+    "quality": 90,
+    "theme": "light"
+  }
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "status": "success",
+  "data": {
+    "image": "base64_encoded_image_data",
+    "format": "png",
+    "size": 345678,
+    "dimensions": {
+      "width": 1000,
+      "height": 1000
+    },
+    "generatedAt": "2025-11-24T12:34:56Z",
+    "chartInfo": {
+      "type": "biwheel",
+      "innerName": "Natal Chart",
+      "outerName": "Progressed Chart",
+      "aspectsFound": {
+        "crossAspects": 12,
+        "inner": 8,
+        "outer": 10
+      }
+    }
+  },
+  "meta": {
+    "renderTime": 1450,
+    "version": "1.0.0"
+  }
+}
+```
+
+**Notes:**
+- The `inner` chart represents the inner circle (typically natal chart)
+- The `outer` chart represents the outer circle (typically progressed, solar return, or comparison chart)
+- Houses for the outer chart are optional - if not provided, inner chart houses will be used
+- `useHousesFrom` can be "inner" (default) or "outer"
+- Three independent aspect settings:
+  - `inner`: aspects within the inner circle
+  - `outer`: aspects within the outer circle
+  - `crossAspects`: aspects between inner and outer circles
+
+### 5. Health Check
 
 Check service health status.
 
@@ -234,7 +382,7 @@ Check service health status.
 }
 ```
 
-### 5. Metrics
+### 6. Metrics
 
 Prometheus-compatible metrics endpoint.
 
@@ -316,6 +464,14 @@ curl -X POST http://localhost:3000/api/v1/chart/render/synastry \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d @synastry-chart-request.json
+```
+
+### Biwheel Chart
+```bash
+curl -X POST http://localhost:3000/api/v1/chart/render/biwheel \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @biwheel-chart-request.json
 ```
 
 ## Integration

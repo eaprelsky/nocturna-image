@@ -7,6 +7,7 @@ Microservice for rendering astrological natal charts as images using the [noctur
 - 🎯 **Natal Chart Rendering**: Generate natal charts as PNG/SVG/JPEG images
 - 🌍 **Transit Charts**: Overlay current transits on natal chart
 - 💑 **Synastry Charts**: Compare two people's natal charts
+- 🔄 **Biwheel Charts**: Generic dual chart support for progressions, solar returns, and more
 - 🔒 **API Key Authentication**: Secure access control
 - ⚡ **Rate Limiting**: Protect against abuse
 - 📊 **Prometheus Metrics**: Built-in monitoring
@@ -81,13 +82,46 @@ POST /api/v1/chart/render/transit
 POST /api/v1/chart/render/synastry
 ```
 
-### 4. Health Check
+### 4. Render Biwheel Chart
+
+```bash
+POST /api/v1/chart/render/biwheel
+Content-Type: application/json
+Authorization: Bearer your-api-key
+
+{
+  "inner": {
+    "name": "Natal Chart",
+    "planets": { /* ... */ },
+    "houses": [ /* ... */ ]
+  },
+  "outer": {
+    "name": "Progressed Chart",
+    "planets": { /* ... */ }
+  },
+  "biwheelSettings": {
+    "useHousesFrom": "inner",
+    "aspectSettings": {
+      "inner": { "enabled": true, "orb": 6 },
+      "outer": { "enabled": true, "orb": 6 },
+      "crossAspects": { "enabled": true, "orb": 3 }
+    }
+  },
+  "renderOptions": {
+    "format": "png",
+    "width": 1000,
+    "height": 1000
+  }
+}
+```
+
+### 5. Health Check
 
 ```bash
 GET /health
 ```
 
-### 5. Metrics
+### 6. Metrics
 
 ```bash
 GET /metrics

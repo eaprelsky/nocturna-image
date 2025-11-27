@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Example: Render a biwheel chart (Natal + Progressed)
+# This script demonstrates how to use the biwheel chart endpoint
+
+API_KEY="${API_KEY:-your-api-key-here}"
+API_URL="${API_URL:-http://localhost:3000}"
+
+curl -X POST "${API_URL}/api/v1/chart/render/biwheel" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inner": {
+      "name": "Natal Chart",
+      "planets": {
+        "sun": { "lon": 85.83, "lat": 0.0, "retrograde": false },
+        "moon": { "lon": 133.21, "lat": 5.12, "retrograde": false },
+        "mercury": { "lon": 95.45, "lat": -2.3, "retrograde": true },
+        "venus": { "lon": 110.20, "lat": 1.5, "retrograde": false },
+        "mars": { "lon": 45.30, "lat": -0.8, "retrograde": true },
+        "jupiter": { "lon": 200.15, "lat": 0.5, "retrograde": false },
+        "saturn": { "lon": 290.45, "lat": 2.1, "retrograde": false },
+        "uranus": { "lon": 15.60, "lat": -0.3, "retrograde": false },
+        "neptune": { "lon": 325.80, "lat": 1.2, "retrograde": false },
+        "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false }
+      },
+      "houses": [
+        { "lon": 300.32 },
+        { "lon": 330.15 },
+        { "lon": 355.24 },
+        { "lon": 20.32 },
+        { "lon": 45.15 },
+        { "lon": 75.24 },
+        { "lon": 120.32 },
+        { "lon": 150.15 },
+        { "lon": 175.24 },
+        { "lon": 200.32 },
+        { "lon": 225.15 },
+        { "lon": 255.24 }
+      ]
+    },
+    "outer": {
+      "name": "Progressed Chart",
+      "planets": {
+        "sun": { "lon": 115.20, "lat": 0.0, "retrograde": false },
+        "moon": { "lon": 200.45, "lat": 4.8, "retrograde": false },
+        "mercury": { "lon": 125.30, "lat": -1.5, "retrograde": false },
+        "venus": { "lon": 140.50, "lat": 2.0, "retrograde": false },
+        "mars": { "lon": 75.80, "lat": -1.2, "retrograde": false },
+        "jupiter": { "lon": 210.30, "lat": 0.8, "retrograde": false },
+        "saturn": { "lon": 295.60, "lat": 2.3, "retrograde": false },
+        "uranus": { "lon": 18.40, "lat": -0.5, "retrograde": false },
+        "neptune": { "lon": 327.90, "lat": 1.4, "retrograde": false },
+        "pluto": { "lon": 272.10, "lat": 14.8, "retrograde": false }
+      }
+    },
+    "biwheelSettings": {
+      "useHousesFrom": "inner",
+      "aspectSettings": {
+        "inner": {
+          "enabled": true,
+          "orb": 6
+        },
+        "outer": {
+          "enabled": true,
+          "orb": 6
+        },
+        "crossAspects": {
+          "enabled": true,
+          "orb": 3
+        }
+      }
+    },
+    "renderOptions": {
+      "format": "png",
+      "width": 1000,
+      "height": 1000,
+      "quality": 90,
+      "theme": "light"
+    }
+  }' | jq '.'
+
+# To save the image to a file:
+# curl ... | jq -r '.data.image' | base64 -d > biwheel-chart.png
+

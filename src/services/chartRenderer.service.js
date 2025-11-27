@@ -308,7 +308,19 @@ class ChartRendererService {
       config.planets = chartData.natal.planets;
       config.secondaryPlanets = chartData.transit.planets;
       config.houses = chartData.natal.houses;
-      config.primaryAspectSettings = chartData.aspectSettings?.natal || { enabled: true, orb: 6 };
+      
+      // For transit charts, primary aspects (natal) should be disabled by default
+      // Always set enabled=false unless explicitly enabled by client
+      if (chartData.aspectSettings?.natal) {
+        config.primaryAspectSettings = {
+          ...chartData.aspectSettings.natal,
+          // Force enabled to false for transit charts (can be overridden by explicit client setting)
+          enabled: false,
+        };
+      } else {
+        config.primaryAspectSettings = { enabled: false, orb: 6 };
+      }
+      
       config.secondaryAspectSettings = chartData.aspectSettings?.transit || {
         enabled: false,
         orb: 6,
@@ -317,6 +329,9 @@ class ChartRendererService {
         enabled: true,
         orb: 3,
       };
+      
+      // DEBUG: Log primary aspect settings for transit chart
+      logger.debug('Transit chart - primaryAspectSettings configured:', JSON.stringify(config.primaryAspectSettings));
     }
 
     // Handle synastry chart
@@ -346,6 +361,37 @@ class ChartRendererService {
       };
     }
 
+    // Handle biwheel chart (generic dual chart)
+    if (chartData.inner && chartData.outer) {
+      // In nocturna-wheel: planets = outer circle, secondaryPlanets = inner circle
+      config.planets = chartData.inner.planets;
+      config.secondaryPlanets = chartData.outer.planets;
+      
+      // Select houses based on biwheelSettings.useHousesFrom
+      const useHousesFrom = chartData.biwheelSettings?.useHousesFrom || 'inner';
+      if (useHousesFrom === 'outer' && chartData.outer.houses) {
+        config.houses = chartData.outer.houses;
+      } else {
+        config.houses = chartData.inner.houses;
+      }
+      
+      config.primaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.inner || {
+        enabled: true,
+        orb: 6,
+      };
+      config.secondaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.outer || {
+        enabled: true,
+        orb: 6,
+      };
+      config.synastryAspectSettings = chartData.biwheelSettings?.aspectSettings?.crossAspects || {
+        enabled: true,
+        orb: 6,
+      };
+    }
+
+    // DEBUG: Log final config
+    logger.debug('prepareChartConfig - Final config.primaryAspectSettings:', JSON.stringify(config.primaryAspectSettings));
+    
     return config;
   }
 

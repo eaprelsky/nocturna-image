@@ -6,6 +6,7 @@ const {
   natalChartSchema,
   transitChartSchema,
   synastryChartSchema,
+  biwheelChartSchema,
 } = require('../validators/chart.validator');
 
 const router = express.Router();
@@ -27,6 +28,14 @@ router.post(
   authenticate,
   validate(synastryChartSchema),
   chartController.renderSynastryChart
+);
+
+// Biwheel chart rendering (generic dual chart)
+router.post(
+  '/render/biwheel',
+  authenticate,
+  validate(biwheelChartSchema),
+  chartController.renderBiwheelChart
 );
 
 module.exports = router;

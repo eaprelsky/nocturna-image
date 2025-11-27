@@ -123,6 +123,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/SynastryChartResponse'
 
+  /api/v1/chart/render/biwheel:
+    post:
+      summary: Render Biwheel Chart
+      description: Generate a generic biwheel (dual) chart with two sets of planetary positions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BiwheelChartRequest'
+      responses:
+        '200':
+          description: Biwheel chart rendered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BiwheelChartResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
 components:
   securitySchemes:
     BearerAuth:
@@ -219,6 +245,58 @@ components:
           enum: [light, dark]
           default: light
 
+    AspectSettings:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: true
+        orb:
+          type: number
+          minimum: 0
+          maximum: 10
+          default: 6
+          description: Default orb for all aspects
+        types:
+          type: object
+          description: Configuration for specific aspect types
+          properties:
+            conjunction:
+              $ref: '#/components/schemas/AspectType'
+            opposition:
+              $ref: '#/components/schemas/AspectType'
+            trine:
+              $ref: '#/components/schemas/AspectType'
+            square:
+              $ref: '#/components/schemas/AspectType'
+            sextile:
+              $ref: '#/components/schemas/AspectType'
+
+    AspectType:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: true
+        orb:
+          type: number
+          minimum: 0
+          maximum: 10
+          description: Specific orb for this aspect type
+        angle:
+          type: number
+          description: Aspect angle in degrees
+        color:
+          type: string
+          description: Color for aspect line
+        lineStyle:
+          type: string
+          enum: [solid, dashed, dotted, none]
+          description: Line style for aspect
+        strokeWidth:
+          type: number
+          description: Line width for aspect
+
     NatalChartRequest:
       type: object
       required:
@@ -278,6 +356,69 @@ components:
               items:
                 $ref: '#/components/schemas/House'
 
+    BiwheelChartRequest:
+      type: object
+      required:
+        - inner
+        - outer
+      properties:
+        inner:
+          type: object
+          required:
+            - planets
+            - houses
+          properties:
+            name:
+              type: string
+              description: Name/label for inner chart
+            planets:
+              $ref: '#/components/schemas/Planets'
+            houses:
+              type: array
+              items:
+                $ref: '#/components/schemas/House'
+              minItems: 12
+              maxItems: 12
+        outer:
+          type: object
+          required:
+            - planets
+          properties:
+            name:
+              type: string
+              description: Name/label for outer chart
+            planets:
+              $ref: '#/components/schemas/Planets'
+            houses:
+              type: array
+              items:
+                $ref: '#/components/schemas/House'
+              minItems: 12
+              maxItems: 12
+              description: Optional - if not provided, inner chart houses will be used
+        biwheelSettings:
+          type: object
+          properties:
+            useHousesFrom:
+              type: string
+              enum: [inner, outer]
+              default: inner
+              description: Which chart's houses to use for the wheel
+            aspectSettings:
+              type: object
+              properties:
+                inner:
+                  $ref: '#/components/schemas/AspectSettings'
+                  description: Aspects within inner circle
+                outer:
+                  $ref: '#/components/schemas/AspectSettings'
+                  description: Aspects within outer circle
+                crossAspects:
+                  $ref: '#/components/schemas/AspectSettings'
+                  description: Aspects between inner and outer circles
+        renderOptions:
+          $ref: '#/components/schemas/RenderOptions'
+
     ChartResponse:
       type: object
       properties:
@@ -319,6 +460,34 @@ components:
     SynastryChartResponse:
       allOf:
         - $ref: '#/components/schemas/ChartResponse'
+
+    BiwheelChartResponse:
+      allOf:
+        - $ref: '#/components/schemas/ChartResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                chartInfo:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [biwheel]
+                    innerName:
+                      type: string
+                    outerName:
+                      type: string
+                    aspectsFound:
+                      type: object
+                      properties:
+                        crossAspects:
+                          type: integer
+                        inner:
+                          type: integer
+                        outer:
+                          type: integer
 
     HealthResponse:
       type: object
