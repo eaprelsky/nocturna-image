@@ -18,7 +18,8 @@ deploy/
 │   ├── switch.sh
 │   ├── rollback.sh
 │   └── status.sh
-└── README.md
+├── README.md               # This file
+└── NETWORK.md              # Docker network configuration guide
 ```
 
 ## Prerequisites
@@ -27,6 +28,9 @@ deploy/
 - Git repository access
 - `.env` file in project root (based on `.env.example`)
 - Bash shell (Linux/macOS) or Git Bash (Windows)
+- Shared Docker network `nocturna-network` (created automatically)
+
+**Note:** If you have other Nocturna services, they can share the same `nocturna-network`. See [NETWORK.md](NETWORK.md) for details.
 
 ## Environment Setup
 
@@ -91,9 +95,11 @@ Production uses Blue-Green deployment strategy for zero-downtime updates.
 
 ### Initial Setup
 
-1. **Start the network:**
+1. **Create shared network (if not exists):**
    ```bash
    docker network create nocturna-network
+   # Note: This network is shared across all Nocturna services
+   # If it already exists from another service, you'll get a harmless error
    ```
 
 2. **Deploy first version to blue:**
@@ -411,9 +417,34 @@ Logs location:
 - Green slot: `docker logs nocturna-chart-green`
 - Nginx: Volume `nocturna-nginx-logs`
 
+## Multi-Service Setup
+
+This service is part of the Nocturna platform and shares the Docker network `nocturna-network` with other services.
+
+### Service Communication
+
+Services can communicate using container names:
+
+```bash
+# From another Nocturna service
+curl http://nocturna-chart-blue:3011/health
+```
+
+### Port Allocation
+
+Ensure each Nocturna service uses unique external ports:
+
+| Service | Blue Port | Green Port |
+|---------|-----------|------------|
+| Chart   | 3011      | 3012       |
+| (Add your other services here) |
+
+**For detailed network configuration, see [NETWORK.md](NETWORK.md)**
+
 ## Support
 
 For issues or questions:
 1. Check logs: `./status.sh` and container logs
 2. Review CHANGELOG.md for known issues
-3. Consult main documentation in `docs/`
+3. Consult network guide: [NETWORK.md](NETWORK.md)
+4. Consult main documentation in `docs/`

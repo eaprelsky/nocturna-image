@@ -27,5 +27,4 @@ volumes:
 networks:
   nocturna-network:
     name: nocturna-network
-    driver: bridge
-    external: true
+    external: true  # Shared network across all Nocturna services

@@ -58,13 +58,16 @@ fi
 
 cd deploy/prod
 
-echo -e "${YELLOW}Step 3: Stopping old ${TARGET_SLOT} container...${NC}"
+echo -e "${YELLOW}Step 3: Ensuring network exists...${NC}"
+docker network create nocturna-network 2>/dev/null || echo "Network already exists, continuing..."
+
+echo -e "${YELLOW}Step 4: Stopping old ${TARGET_SLOT} container...${NC}"
 docker-compose -f docker-compose.${TARGET_SLOT}.yml down || true
 
-echo -e "${YELLOW}Step 4: Starting new ${TARGET_SLOT} container...${NC}"
+echo -e "${YELLOW}Step 5: Starting new ${TARGET_SLOT} container...${NC}"
 docker-compose -f docker-compose.${TARGET_SLOT}.yml up -d
 
-echo -e "${YELLOW}Step 5: Waiting for ${TARGET_SLOT} to be healthy...${NC}"
+echo -e "${YELLOW}Step 6: Waiting for ${TARGET_SLOT} to be healthy...${NC}"
 sleep 5
 
 # Health check

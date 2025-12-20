@@ -47,4 +47,4 @@ services:
 networks:
   nocturna-network:
     name: nocturna-network
-    driver: bridge
+    external: true  # Use existing network or create if not exists
