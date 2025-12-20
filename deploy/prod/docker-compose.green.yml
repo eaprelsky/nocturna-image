@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  chart-service-green:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: nocturna-chart-service:${VERSION:-latest}
+    container_name: nocturna-chart-green
+    ports:
+      - "3012:3011"
+    env_file:
+      - ../../.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3011
+      - HOST=0.0.0.0
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      - DEPLOYMENT_SLOT=green
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3011/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /app/.cache
+    labels:
+      - "com.nocturna.environment=production"
+      - "com.nocturna.service=chart-service"
+      - "com.nocturna.slot=green"
+    networks:
+      - nocturna-network
+
+networks:
+  nocturna-network:
+    name: nocturna-network
+    driver: bridge

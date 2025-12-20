@@ -300,6 +300,7 @@ class ChartRendererService {
         width: renderOptions.width || 800,
         height: renderOptions.height || 800,
         theme: renderOptions.theme || 'light',
+        showHouses: renderOptions.showHouses !== undefined ? renderOptions.showHouses : true,
       },
     };
 

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **House display toggle** - new `showHouses` option in `renderOptions` (default: `true`)
+  - Control visibility of house divisions and numbering
+  - Works for all chart types: natal, transit, synastry, and biwheel
+  - Houses data still required for proper chart calculations and rotation
+  - Examples: `examples/chart-without-houses.json`, `examples/biwheel-without-houses.json`
+  - Test script: `examples/test-show-houses.sh`
 - **Biwheel chart support** - new generic dual chart endpoint (`POST /api/v1/chart/render/biwheel`)
   - Flexible dual-wheel charts for progressions, solar returns, lunar returns, and more
   - Independent aspect settings for inner circle, outer circle, and cross-aspects
@@ -18,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - When set to `true`, a small 'R' symbol appears next to the planet icon on the chart
   - Defaults to `false` for backward compatibility
   - Works with natal, transit, synastry, and biwheel charts
-- Updated to nocturna-wheel v3.1.0 with retrograde planet support
+- Updated to nocturna-wheel v4.0.1 with retrograde planet support and house toggle method
 
 ### Planned
 - Caching layer for identical chart requests

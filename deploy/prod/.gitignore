@@ -1,0 +1,8 @@
+# Active slot marker
+.active_slot
+
+# Nginx backup files
+nginx.conf.bak
+
+# Logs
+*.log

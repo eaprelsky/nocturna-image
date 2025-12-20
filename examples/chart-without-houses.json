@@ -1,0 +1,48 @@
+{
+  "planets": {
+    "sun": { "lon": 85.83, "lat": 0.0, "retrograde": false },
+    "moon": { "lon": 133.21, "lat": 5.12, "retrograde": false },
+    "mercury": { "lon": 95.45, "lat": -2.3, "retrograde": true },
+    "venus": { "lon": 110.20, "lat": 1.5, "retrograde": false },
+    "mars": { "lon": 45.30, "lat": -0.8, "retrograde": false },
+    "jupiter": { "lon": 200.15, "lat": 0.5, "retrograde": false },
+    "saturn": { "lon": 290.45, "lat": 2.1, "retrograde": false },
+    "uranus": { "lon": 15.60, "lat": -0.3, "retrograde": false },
+    "neptune": { "lon": 325.80, "lat": 1.2, "retrograde": false },
+    "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false }
+  },
+  "houses": [
+    { "lon": 300.32 },
+    { "lon": 330.15 },
+    { "lon": 355.24 },
+    { "lon": 20.32 },
+    { "lon": 45.15 },
+    { "lon": 75.24 },
+    { "lon": 120.32 },
+    { "lon": 150.15 },
+    { "lon": 175.24 },
+    { "lon": 200.32 },
+    { "lon": 225.15 },
+    { "lon": 255.24 }
+  ],
+  "aspectSettings": {
+    "enabled": true,
+    "orb": 6,
+    "types": {
+      "conjunction": { "enabled": true },
+      "opposition": { "enabled": true },
+      "trine": { "enabled": true },
+      "square": { "enabled": true },
+      "sextile": { "enabled": true }
+    }
+  },
+  "renderOptions": {
+    "format": "png",
+    "width": 800,
+    "height": 800,
+    "quality": 90,
+    "theme": "light",
+    "showHouses": false
+  }
+}
+

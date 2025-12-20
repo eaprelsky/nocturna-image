@@ -265,6 +265,20 @@
       console.log('Render result:', renderResult);
       console.log('Chart rendered successfully');
       
+      // Apply showHouses setting if specified
+      const showHouses = chartConfig.renderOptions?.showHouses !== undefined 
+        ? chartConfig.renderOptions.showHouses 
+        : true;
+      
+      if (!showHouses) {
+        console.log('Hiding houses display (showHouses = false)');
+        if (typeof chart.toggleHouses === 'function') {
+          chart.toggleHouses(false);
+        } else {
+          console.warn('chart.toggleHouses method not available');
+        }
+      }
+      
       // Give library time to complete rendering (might be asynchronous)
       // This will be handled by Puppeteer's waitForFunction
       // The library automatically calculates ascendantAlignmentOffset from houseCusps

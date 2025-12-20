@@ -244,6 +244,10 @@ components:
           type: string
           enum: [light, dark]
           default: light
+        showHouses:
+          type: boolean
+          default: true
+          description: Toggle visibility of house divisions and numbering
 
     AspectSettings:
       type: object

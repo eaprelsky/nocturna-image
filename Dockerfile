@@ -1,11 +1,14 @@
-FROM node:20-slim
+# ============================================
+# Stage 1: Base image with system dependencies
+# ============================================
+FROM node:20-slim AS base
 
 # Add metadata
 LABEL maintainer="Nocturna Project"
 LABEL description="Chart rendering service for astrological charts"
 LABEL version="1.0.0"
 
-# Install Chrome dependencies
+# Install Chrome dependencies (cached unless apt packages change)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
@@ -24,22 +27,43 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
+# Set Puppeteer to use system chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# ============================================
+# Stage 2: Dependencies installation
+# ============================================
+FROM base AS dependencies
+
 WORKDIR /app
 
-# Copy package files first (for better layer caching)
+# Copy only package files (this layer is cached unless dependencies change)
 COPY package*.json ./
 
-# Install dependencies
+# Install production dependencies (this is the heavy layer we want to cache)
 RUN npm ci --only=production && \
     npm cache clean --force
 
-# Copy application files (use built-in node user from base image)
-COPY --chown=node:node . .
+# ============================================
+# Stage 3: Production image
+# ============================================
+FROM base AS production
+
+WORKDIR /app
+
+# Copy dependencies from previous stage (reuses cache if dependencies haven't changed)
+COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
+
+# Copy package.json for version info
+COPY --chown=node:node package*.json ./
+
+# Copy application source code (changes frequently, but doesn't trigger dependency reinstall)
+COPY --chown=node:node src ./src
+COPY --chown=node:node public ./public
 
 # Set environment variables
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
-    NODE_ENV=production \
+ENV NODE_ENV=production \
     PORT=3011 \
     HOST=0.0.0.0
 
@@ -50,7 +74,7 @@ EXPOSE 3011
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3011/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Switch to non-root user (built-in from node:20-slim)
+# Switch to non-root user for security
 USER node
 
 # Start application

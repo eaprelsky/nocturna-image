@@ -73,7 +73,8 @@ Authorization: Bearer YOUR_API_KEY
     "width": 800,
     "height": 800,
     "quality": 90,
-    "theme": "light"
+    "theme": "light",
+    "showHouses": true
   }
 }
 ```
@@ -439,6 +440,33 @@ chart_render_duration_seconds_bucket{type="natal",le="3"} 1200
 - `height`: 400 - 2000 pixels
 - `quality`: 1 - 100 (for PNG/JPEG)
 - `theme`: `light` or `dark`
+- `showHouses`: `true` (default) or `false` - Toggle visibility of house divisions and numbering
+
+## House Display Control
+
+You can toggle the visibility of house divisions and numbering using the `showHouses` option in `renderOptions`:
+
+**Example: Chart without house display**
+```json
+{
+  "planets": { /* ... */ },
+  "houses": [ /* ... still required for chart calculations */ ],
+  "renderOptions": {
+    "format": "png",
+    "width": 800,
+    "height": 800,
+    "showHouses": false
+  }
+}
+```
+
+**Note:** The `houses` array is still required even when `showHouses` is `false`, as it's needed for proper chart rotation and calculations. The `showHouses` option only controls the visual display of house lines and numbers.
+
+This works for all chart types:
+- Natal charts (`POST /api/v1/chart/render`)
+- Transit charts (`POST /api/v1/chart/render/transit`)
+- Synastry charts (`POST /api/v1/chart/render/synastry`)
+- Biwheel charts (`POST /api/v1/chart/render/biwheel`)
 
 ## cURL Examples
 
@@ -448,6 +476,23 @@ curl -X POST http://localhost:3000/api/v1/chart/render \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d @natal-chart-request.json
+```
+
+### Natal Chart without Houses Display
+```bash
+curl -X POST http://localhost:3000/api/v1/chart/render \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "planets": { /* ... */ },
+    "houses": [ /* ... */ ],
+    "renderOptions": {
+      "format": "png",
+      "width": 800,
+      "height": 800,
+      "showHouses": false
+    }
+  }'
 ```
 
 ### Transit Chart

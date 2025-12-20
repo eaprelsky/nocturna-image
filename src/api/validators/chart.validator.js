@@ -44,6 +44,7 @@ const renderOptionsSchema = z.object({
   height: z.number().min(400).max(2000).optional().default(800),
   quality: z.number().min(1).max(100).optional().default(90),
   theme: z.enum(['light', 'dark']).optional().default('light'),
+  showHouses: z.boolean().optional().default(true),
   showLabels: z
     .object({
       natal: z.boolean().optional(),

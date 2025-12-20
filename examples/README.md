@@ -20,6 +20,38 @@ export API_KEY="your-api-key-here"
 
 ## Examples
 
+### House Display Toggle
+
+The service supports toggling the visibility of house divisions and numbering through the `showHouses` option.
+
+**Test script:**
+```bash
+chmod +x test-show-houses.sh
+./test-show-houses.sh
+```
+
+This generates three comparison images:
+- `chart-with-houses.png` - WITH house lines and numbers (default)
+- `chart-without-houses.png` - WITHOUT house lines and numbers
+- `biwheel-without-houses.png` - Biwheel WITHOUT house lines
+
+**Example JSON files:**
+- `chart-without-houses.json` - Natal chart with `showHouses: false`
+- `biwheel-without-houses.json` - Biwheel chart with `showHouses: false`
+
+**Usage:**
+```json
+{
+  "planets": { ... },
+  "houses": [ ... ],  // still required!
+  "renderOptions": {
+    "showHouses": false
+  }
+}
+```
+
+**Note:** The `houses` array is always required, even when `showHouses` is `false`, as it's needed for chart rotation and calculations. The option only controls visual display.
+
 ### Biwheel Chart (Bash)
 
 Render a biwheel chart (Natal + Progressed) using curl:
@@ -103,7 +135,8 @@ render_options = {
     'width': 1000,        # 400-2000 pixels
     'height': 1000,       # 400-2000 pixels
     'quality': 90,        # 1-100 (for PNG/JPEG)
-    'theme': 'light'      # light or dark
+    'theme': 'light',     # light or dark
+    'showHouses': True    # True (default) or False - toggle house display
 }
 ```
 
