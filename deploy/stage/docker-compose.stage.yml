@@ -34,6 +34,7 @@ services:
     tmpfs:
       - /tmp
       - /app/.cache
+    shm_size: '512m'
     labels:
       - "com.nocturna.environment=staging"
       - "com.nocturna.service=chart-service"
