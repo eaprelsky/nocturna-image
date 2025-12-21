@@ -49,7 +49,7 @@ cd ../..
 git pull origin master || echo "Git pull skipped"
 
 echo -e "${YELLOW}Step 2: Building Docker image with version: ${VERSION}${NC}"
-docker build -t nocturna-chart-service:${VERSION} -f Dockerfile .
+docker build --build-arg BUILDKIT_INLINE_CACHE=1 -t nocturna-chart-service:${VERSION} -f Dockerfile .
 
 # Tag as latest if not specified
 if [ "$VERSION" != "latest" ]; then

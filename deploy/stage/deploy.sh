@@ -26,7 +26,7 @@ git pull origin master || echo "Git pull skipped (not in git repo or no changes)
 
 echo -e "${YELLOW}Step 2: Building Docker image...${NC}"
 cd deploy/stage
-docker-compose -f docker-compose.stage.yml build --no-cache
+docker-compose -f docker-compose.stage.yml build
 
 echo -e "${YELLOW}Step 3: Stopping old container...${NC}"
 docker-compose -f docker-compose.stage.yml down
