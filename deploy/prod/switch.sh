@@ -10,6 +10,9 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== Nocturna Chart Service - Traffic Switch ===${NC}"
 
+# System nginx upstream (preferred in production)
+SYSTEM_NGINX_UPSTREAM_FILE="/etc/nginx/upstreams/nocturna-img-production.conf"
+
 # Get current directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -24,11 +27,13 @@ fi
 if [ "$ACTIVE_SLOT" = "blue" ]; then
     TARGET_SLOT="green"
     TARGET_PORT=3012
-    NEW_UPSTREAM="nocturna-chart-green:3011"
+    NEW_UPSTREAM_SYSTEM="localhost:3012"
+    NEW_UPSTREAM_LOCAL="nocturna-chart-green:3011"
 else
     TARGET_SLOT="blue"
     TARGET_PORT=3014
-    NEW_UPSTREAM="nocturna-chart-blue:3011"
+    NEW_UPSTREAM_SYSTEM="localhost:3014"
+    NEW_UPSTREAM_LOCAL="nocturna-chart-blue:3011"
 fi
 
 echo -e "${BLUE}Current active slot: ${ACTIVE_SLOT}${NC}"
@@ -47,17 +52,38 @@ echo -e "${GREEN}✓ ${TARGET_SLOT} is healthy${NC}"
 
 # Update nginx configuration
 echo -e "${YELLOW}Updating nginx configuration...${NC}"
-sed -i.bak "s|server [^;]*;  # Default:.*|server ${NEW_UPSTREAM};  # Default: ${TARGET_SLOT}|" nginx.conf
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+    SUDO="sudo"
+fi
 
-# Reload nginx
-echo -e "${YELLOW}Reloading nginx...${NC}"
-if docker ps | grep -q nocturna-nginx; then
-    docker exec nocturna-nginx nginx -s reload
-    echo -e "${GREEN}✓ Nginx reloaded${NC}"
+if [ -f "${SYSTEM_NGINX_UPSTREAM_FILE}" ]; then
+    echo -e "${BLUE}Using system nginx upstream file: ${SYSTEM_NGINX_UPSTREAM_FILE}${NC}"
+    # Only replace the ACTIVE line inside upstream nocturna-img-production
+    $SUDO sed -i.bak -E "s/^[[:space:]]*server localhost:[0-9]+;[[:space:]]*# ACTIVE: .*/    server ${NEW_UPSTREAM_SYSTEM};  # ACTIVE: ${TARGET_SLOT}/" "${SYSTEM_NGINX_UPSTREAM_FILE}"
+
+    echo -e "${YELLOW}Reloading system nginx...${NC}"
+    $SUDO nginx -t
+    if command -v systemctl >/dev/null 2>&1; then
+        $SUDO systemctl reload nginx
+    else
+        $SUDO nginx -s reload
+    fi
+    echo -e "${GREEN}✓ System nginx reloaded${NC}"
 else
-    echo -e "${YELLOW}Warning: Nginx container not running. Starting it...${NC}"
-    docker-compose -f docker-compose.nginx.yml up -d
-    sleep 3
+    echo -e "${YELLOW}Warning: system upstream file not found. Falling back to local nginx.conf and container nginx.${NC}"
+    sed -i.bak "s|server [^;]*;  # Default:.*|server ${NEW_UPSTREAM_LOCAL};  # Default: ${TARGET_SLOT}|" nginx.conf
+
+    # Reload nginx
+    echo -e "${YELLOW}Reloading nginx...${NC}"
+    if docker ps | grep -q nocturna-nginx; then
+        docker exec nocturna-nginx nginx -s reload
+        echo -e "${GREEN}✓ Nginx reloaded${NC}"
+    else
+        echo -e "${YELLOW}Warning: Nginx container not running. Starting it...${NC}"
+        docker-compose -f docker-compose.nginx.yml up -d
+        sleep 3
+    fi
 fi
 
 # Save new active slot
