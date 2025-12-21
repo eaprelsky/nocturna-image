@@ -82,13 +82,38 @@
       houses: chartConfig.houses || []  // Keep as objects: [{lon: 123}, {lon: 456}, ...]
     };
 
-    // Add secondary planets if present (for transit/synastry)
-    if (chartConfig.secondaryPlanets) {
+    // Secondary planets (dual charts only)
+    const hasSecondaryPlanets =
+      !!chartConfig.secondaryPlanets &&
+      typeof chartConfig.secondaryPlanets === 'object' &&
+      !Array.isArray(chartConfig.secondaryPlanets) &&
+      Object.keys(chartConfig.secondaryPlanets).length > 0;
+
+    if (hasSecondaryPlanets) {
       wheelConfig.secondaryPlanets = chartConfig.secondaryPlanets;
     }
 
     // Always create config object to ensure proper initialization
     wheelConfig.config = wheelConfig.config || {};
+    wheelConfig.config.planetSettings = wheelConfig.config.planetSettings || {};
+    // Prevent innermost circle from rendering on single charts.
+    // nocturna-wheel draws the innermost circle when secondaryEnabled !== false.
+    wheelConfig.config.planetSettings.secondaryEnabled = hasSecondaryPlanets;
+
+    // Add astronomicalData for proper house rendering (Placidus requires this)
+    // Extract ASC (house 1) and MC (house 10) from houses array
+    if (wheelConfig.houses && wheelConfig.houses.length >= 10) {
+      const ascendant = wheelConfig.houses[0].lon;
+      const mc = wheelConfig.houses[9].lon;
+      
+      wheelConfig.config.astronomicalData = {
+        ascendant: ascendant,
+        mc: mc,
+        latitude: chartConfig.latitude || 55.75,  // Default to Moscow
+        houseSystem: chartConfig.houseSystem || "Placidus"
+      };
+      console.log('astronomicalData:', wheelConfig.config.astronomicalData);
+    }
 
     // SVG dimensions
     if (chartConfig.renderOptions?.width) {
@@ -252,9 +277,8 @@
       let chart;
       
       try {
-        // Since v4.0.0, the library automatically rotates the wheel
-        // to position the Ascendant (houses[0]) at 9 o'clock
         chart = new WheelChart(wheelConfig);
+        // No manual rotation - let astronomicalData handle orientation
       } catch (e) {
         console.error('Error creating chart:', e);
         throw e;
@@ -264,6 +288,26 @@
       const renderResult = chart.render();
       console.log('Render result:', renderResult);
       console.log('Chart rendered successfully');
+
+      // Post-processing fixes for rendering output
+      const postProcessSvg = () => {
+        // Extra safety: ensure secondary layer is disabled for single charts
+        if (!hasSecondaryPlanets && typeof chart.toggleSecondaryPlanets === 'function') {
+          chart.toggleSecondaryPlanets(false);
+        }
+
+        // "Punched" dots: library uses black (#000000) by default when no planet color is provided.
+        // Make them dark gray instead of pure black.
+        const svg = document.querySelector('#chart-container svg');
+        if (!svg) return;
+
+        svg.querySelectorAll('circle.planet-dot').forEach((dot) => {
+          const fill = (dot.getAttribute('fill') || '').trim().toLowerCase();
+          if (!fill || fill === '#000' || fill === '#000000' || fill === 'black' || fill === 'rgb(0,0,0)') {
+            dot.setAttribute('fill', '#333333');
+          }
+        });
+      };
       
       // Apply showHouses setting if specified
       const showHouses = chartConfig.renderOptions?.showHouses !== undefined 
@@ -333,6 +377,7 @@
       
       // Check after render completes
       checkSVGContent();
+      postProcessSvg();
       
     } catch (error) {
       console.error('Error rendering chart:', error);
