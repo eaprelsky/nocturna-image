@@ -24,11 +24,11 @@ fi
 if [ "$ACTIVE_SLOT" = "blue" ]; then
     TARGET_SLOT="green"
     TARGET_PORT=3012
-    NEW_UPSTREAM="localhost:3012"
+    NEW_UPSTREAM="nocturna-chart-green:3011"
 else
     TARGET_SLOT="blue"
-    TARGET_PORT=3011
-    NEW_UPSTREAM="localhost:3011"
+    TARGET_PORT=3014
+    NEW_UPSTREAM="nocturna-chart-blue:3011"
 fi
 
 echo -e "${BLUE}Current active slot: ${ACTIVE_SLOT}${NC}"
@@ -47,7 +47,7 @@ echo -e "${GREEN}✓ ${TARGET_SLOT} is healthy${NC}"
 
 # Update nginx configuration
 echo -e "${YELLOW}Updating nginx configuration...${NC}"
-sed -i.bak "s|server localhost:[0-9]*;  # Default:.*|server ${NEW_UPSTREAM};  # Default: ${TARGET_SLOT}|" nginx.conf
+sed -i.bak "s|server [^;]*;  # Default:.*|server ${NEW_UPSTREAM};  # Default: ${TARGET_SLOT}|" nginx.conf
 
 # Reload nginx
 echo -e "${YELLOW}Reloading nginx...${NC}"

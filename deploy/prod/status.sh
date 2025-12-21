@@ -24,12 +24,12 @@ echo -e "${BLUE}Active Slot: ${ACTIVE_SLOT}${NC}"
 echo ""
 
 # Check blue status
-echo -e "${YELLOW}Blue Slot (port 3011):${NC}"
+echo -e "${YELLOW}Blue Slot (port 3014):${NC}"
 if docker ps | grep -q nocturna-chart-blue; then
     echo -e "  Status: ${GREEN}Running${NC}"
-    if curl -f http://localhost:3011/health > /dev/null 2>&1; then
+    if curl -f http://localhost:3014/health > /dev/null 2>&1; then
         echo -e "  Health: ${GREEN}Healthy${NC}"
-        BLUE_VERSION=$(curl -s http://localhost:3011/health | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+        BLUE_VERSION=$(curl -s http://localhost:3014/health | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
         echo "  Version: $BLUE_VERSION"
     else
         echo -e "  Health: ${RED}Unhealthy${NC}"
