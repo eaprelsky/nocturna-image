@@ -41,7 +41,7 @@ sleep 5
 MAX_ATTEMPTS=30
 ATTEMPT=0
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    if curl -f http://localhost:3011/health > /dev/null 2>&1; then
+    if curl -f http://localhost:3013/health > /dev/null 2>&1; then
         echo -e "${GREEN}✓ Service is healthy!${NC}"
         break
     fi
@@ -59,9 +59,9 @@ fi
 
 echo -e "${GREEN}Step 6: Deployment completed successfully!${NC}"
 echo ""
-echo "Service is running at: http://localhost:3011"
-echo "Health check: http://localhost:3011/health"
-echo "Metrics: http://localhost:3011/metrics"
+echo "Service is running at: http://localhost:3013"
+echo "Health check: http://localhost:3013/health"
+echo "Metrics: http://localhost:3013/metrics"
 echo ""
 echo "View logs: docker-compose -f docker-compose.stage.yml logs -f"
 echo "Stop service: docker-compose -f docker-compose.stage.yml down"

@@ -64,7 +64,7 @@ cd deploy/stage
 ./deploy.sh
 ```
 
-The service will be available at: `http://localhost:3011`
+The service will be available at: `http://localhost:3013`
 
 ### Staging Commands
 
