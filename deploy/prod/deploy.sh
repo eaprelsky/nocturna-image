@@ -33,7 +33,7 @@ if [ "$ACTIVE_SLOT" = "blue" ]; then
     TARGET_PORT=3012
 else
     TARGET_SLOT="blue"
-    TARGET_PORT=3011
+    TARGET_PORT=3014
 fi
 
 echo -e "${BLUE}Current active slot: ${ACTIVE_SLOT}${NC}"

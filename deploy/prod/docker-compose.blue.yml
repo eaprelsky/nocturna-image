@@ -6,7 +6,7 @@ services:
     image: nocturna-chart-service:${VERSION:-latest}
     container_name: nocturna-chart-blue
     ports:
-      - "3011:3011"
+      - "3014:3011"
     env_file:
       - ../../.env
     environment:
