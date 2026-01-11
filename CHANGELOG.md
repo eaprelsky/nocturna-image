@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+#### Deployment & Infrastructure
+- **Unified deployment scripts** - standardized interface for all environments
+  - `scripts/deploy.sh` - single entry point for staging and production deployments
+  - `scripts/switch.sh` - traffic switching for blue-green deployments
+  - `scripts/rollback.sh` - instant rollback to previous slot
+  - `scripts/status.sh` - comprehensive status monitoring
+  - Detailed script documentation in `scripts/README.md`
+- **Blue-green production deployment** - zero-downtime deployment strategy
+  - Two independent slots (blue and green) on different ports
+  - Automatic slot selection and health verification
+  - Instant traffic switching via nginx
+  - Safe rollback mechanism
+  - Metadata tracking of active slot
+- **Multi-stage Dockerfile optimization** - improved build performance
+  - Three-stage build: base → dependencies → production
+  - BuildKit cache mounts for apt and npm
+  - Aggressive layer caching strategy
+  - System dependencies cached separately from app code
+  - Code changes trigger fast rebuilds (< 30 seconds)
+- **Enhanced .dockerignore** - reduced build context size
+  - Excludes deployment scripts, examples, and documentation
+  - Smaller Docker context means faster builds
+  - CI/CD files excluded from production image
+
+#### Features
 - **Additional planets support** - optional Rahu, Ketu, Selena, and Lilith (since nocturna-wheel 4.1.0)
   - Rahu (North Lunar Node) - optional planet
   - Ketu (South Lunar Node) - optional planet

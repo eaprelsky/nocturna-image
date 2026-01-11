@@ -9,7 +9,10 @@ LABEL description="Chart rendering service for astrological charts"
 LABEL version="1.0.0"
 
 # Install Chrome dependencies (cached unless apt packages change)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Using BuildKit cache mount for apt cache
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
     fonts-noto-color-emoji \
@@ -41,8 +44,10 @@ WORKDIR /app
 # Copy only package files (this layer is cached unless dependencies change)
 COPY package*.json ./
 
-# Install production dependencies (this is the heavy layer we want to cache)
-RUN npm ci --only=production && \
+# Install production dependencies with npm cache mount
+# This layer is cached unless package*.json changes
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production && \
     npm cache clean --force
 
 # ============================================

@@ -159,32 +159,100 @@ npm run lint
 npm run format
 ```
 
-## Docker
+## Deployment
 
-### Build and Run
+### Quick Deployment
+
+Unified deployment scripts for all environments:
+
+```bash
+# Deploy to staging
+./scripts/deploy.sh staging
+
+# Deploy to production (blue-green)
+./scripts/deploy.sh production
+
+# Check status
+./scripts/status.sh
+```
+
+### Staging Environment
+
+Single container for testing:
+
+```bash
+# Deploy
+./scripts/deploy.sh staging
+
+# Test
+curl http://localhost:3013/health
+
+# View logs
+docker-compose -f deploy/stage/docker-compose.stage.yml logs -f
+```
+
+**Port**: 3013
+
+### Production Environment (Blue-Green)
+
+Zero-downtime deployment with two slots:
+
+```bash
+# Deploy to inactive slot (auto-detected)
+./scripts/deploy.sh production
+
+# Test new deployment
+curl http://localhost:3014/health  # blue
+curl http://localhost:3012/health  # green
+
+# Switch traffic
+./scripts/switch.sh
+
+# Rollback if needed
+./scripts/rollback.sh
+```
+
+**Ports**: 
+- Blue slot: 3014
+- Green slot: 3012
+
+**Benefits**:
+- Zero downtime deployments
+- Instant rollback capability
+- Test before going live
+- Both slots available for A/B testing
+
+### Manual Docker Deployment
 
 ```bash
 # Build image
 docker build -t nocturna-chart-service .
 
 # Run container
-docker run -p 3000:3000 \
+docker run -p 3011:3011 \
   -e API_KEY=your-secret-key \
+  -e NODE_ENV=production \
   nocturna-chart-service
 ```
 
-### Docker Compose
+### Docker Build Optimization
+
+The Dockerfile uses multi-stage builds with BuildKit cache:
 
 ```bash
-# Start service
-docker-compose up -d
+# Fast build (uses cache)
+DOCKER_BUILDKIT=1 docker build -t nocturna-chart-service .
 
-# View logs
-docker-compose logs -f
-
-# Stop service
-docker-compose down
+# Full rebuild
+docker build --no-cache -t nocturna-chart-service .
 ```
+
+**Build stages**:
+1. Base: System dependencies (Chromium, fonts)
+2. Dependencies: npm packages
+3. Production: Application code
+
+Code changes trigger fast rebuilds (< 30 seconds) thanks to layer caching.
 
 ## Integration with Telegram Bot
 
@@ -211,9 +279,17 @@ Prometheus metrics available at `/metrics`:
 
 MIT
 
+## Documentation
+
+- [API Documentation](docs/API.md) - Complete API reference
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment & blue-green setup
+- [Script Documentation](scripts/README.md) - Deployment scripts usage
+- [Biwheel Charts](docs/BIWHEEL_CHARTS.md) - Dual chart support
+- [Integration Guide](docs/INTEGRATION.md) - Client implementation examples
+- [Project Structure](docs/PROJECT_STRUCTURE.md) - Codebase organization
+
 ## Links
 
 - [nocturna-wheel Library](https://github.com/eaprelsky/nocturna-wheel)
 - [Nocturna Calculations API](https://calculations.nocturna.ru/docs)
-- [API Documentation](docs/API.md)
 

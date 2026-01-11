@@ -1,0 +1,37 @@
+# Nocturna Chart Service - Production Upstream Configuration
+# 
+# This file should be placed in: /etc/nginx/upstreams/nocturna-img-production.conf
+# It is automatically managed by scripts/switch.sh during blue-green deployments
+#
+# Manual setup:
+#   sudo mkdir -p /etc/nginx/upstreams
+#   sudo cp nginx-upstream.conf.example /etc/nginx/upstreams/nocturna-img-production.conf
+#   sudo chown root:root /etc/nginx/upstreams/nocturna-img-production.conf
+#   sudo chmod 644 /etc/nginx/upstreams/nocturna-img-production.conf
+
+upstream nocturna-img-production {
+    # Active slot (automatically updated by switch.sh)
+    # Only ONE of the following should be active at a time
+    
+    server localhost:3014;  # ACTIVE: blue
+    
+    # Standby slot (keep commented out)
+    # server localhost:3012;  # STANDBY: green
+    
+    # Connection settings
+    keepalive 32;
+    keepalive_timeout 60s;
+}
+
+# Optional: Health check endpoint for monitoring
+# Include this in your main nginx server block:
+#
+# location /health/blue {
+#     proxy_pass http://localhost:3014/health;
+#     access_log off;
+# }
+#
+# location /health/green {
+#     proxy_pass http://localhost:3012/health;
+#     access_log off;
+# }

@@ -42,3 +42,20 @@ openapi.yaml
 debug*.html
 *.debug.html
 
+# Deployment and infrastructure
+deploy/
+scripts/
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Examples and bug reports
+examples/
+bug-reports/
+asc-report.md
+BIWHEEL_*.md
+
+# CI/CD
+.github/
+.cursor/
+

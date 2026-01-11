@@ -1,4 +1,7 @@
 #!/bin/bash
+# Rollback to previous (standby) slot
+# Usage: ./rollback.sh
+
 set -e
 
 # Colors for output
@@ -8,20 +11,62 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${RED}=== Nocturna Chart Service - ROLLBACK ===${NC}"
-
-# System nginx upstream (preferred in production)
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+METADATA_FILE="$SCRIPT_DIR/.active_slot"
 SYSTEM_NGINX_UPSTREAM_FILE="/etc/nginx/upstreams/nocturna-img-production.conf"
 
-# Get current directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Get current active slot
+get_active_slot() {
+    if [ -f "$METADATA_FILE" ]; then
+        cat "$METADATA_FILE"
+    else
+        echo "blue"  # Default to blue
+    fi
+}
+
+# Check if slot is healthy
+check_health() {
+    local slot=$1
+    local port
+    
+    if [ "$slot" = "blue" ]; then
+        port=3014
+    else
+        port=3012
+    fi
+    
+    if curl -sf "http://localhost:$port/health" > /dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 cd "$SCRIPT_DIR"
 
+log_error "=== ROLLBACK ==="
+echo ""
+
 # Determine current active slot
-ACTIVE_SLOT="blue"
-if [ -f ".active_slot" ]; then
-    ACTIVE_SLOT=$(cat .active_slot)
-fi
+ACTIVE_SLOT=$(get_active_slot)
 
 # Determine previous slot (where we're rolling back to)
 if [ "$ACTIVE_SLOT" = "blue" ]; then
@@ -36,65 +81,94 @@ else
     PREVIOUS_UPSTREAM_LOCAL="nocturna-chart-blue:3011"
 fi
 
-echo -e "${BLUE}Current active slot: ${ACTIVE_SLOT}${NC}"
-echo -e "${RED}Rolling back to: ${PREVIOUS_SLOT}${NC}"
+log_info "Current active slot: $ACTIVE_SLOT"
+log_warning "Rolling back to: $PREVIOUS_SLOT"
 echo ""
 
 # Confirm rollback
-read -p "Are you sure you want to rollback to ${PREVIOUS_SLOT}? (yes/no): " CONFIRM
+log_warning "This will switch traffic from $ACTIVE_SLOT back to $PREVIOUS_SLOT"
+read -p "Are you sure you want to rollback? (yes/no): " CONFIRM
 if [ "$CONFIRM" != "yes" ]; then
-    echo "Rollback cancelled"
+    log_info "Rollback cancelled"
     exit 0
 fi
 
 # Check if previous slot is running and healthy
-echo -e "${YELLOW}Checking ${PREVIOUS_SLOT} health...${NC}"
-if ! curl -f http://localhost:${PREVIOUS_PORT}/health > /dev/null 2>&1; then
-    echo -e "${RED}Error: ${PREVIOUS_SLOT} slot is not healthy!${NC}"
-    echo "Cannot rollback to unhealthy slot"
+log_info "Checking $PREVIOUS_SLOT health..."
+if ! check_health "$PREVIOUS_SLOT"; then
+    log_error "$PREVIOUS_SLOT slot is not healthy!"
+    log_error "Cannot rollback to unhealthy slot"
+    log_info "You may need to restart it first:"
+    log_info "  docker-compose -f docker-compose.${PREVIOUS_SLOT}.yml up -d"
     exit 1
 fi
 
-echo -e "${GREEN}✓ ${PREVIOUS_SLOT} is healthy${NC}"
+log_success "$PREVIOUS_SLOT is healthy"
 
 # Update nginx configuration
-echo -e "${YELLOW}Updating nginx configuration...${NC}"
+log_info "Updating nginx configuration..."
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then
     SUDO="sudo"
 fi
 
 if [ -f "${SYSTEM_NGINX_UPSTREAM_FILE}" ]; then
-    echo -e "${BLUE}Using system nginx upstream file: ${SYSTEM_NGINX_UPSTREAM_FILE}${NC}"
+    log_info "Using system nginx upstream file: ${SYSTEM_NGINX_UPSTREAM_FILE}"
     $SUDO sed -i.bak -E "s/^[[:space:]]*server localhost:[0-9]+;[[:space:]]*# ACTIVE: .*/    server ${PREVIOUS_UPSTREAM_SYSTEM};  # ACTIVE: ${PREVIOUS_SLOT}/" "${SYSTEM_NGINX_UPSTREAM_FILE}"
 
-    echo -e "${YELLOW}Reloading system nginx...${NC}"
-    $SUDO nginx -t
-    if command -v systemctl >/dev/null 2>&1; then
-        $SUDO systemctl reload nginx
+    log_info "Reloading system nginx..."
+    if $SUDO nginx -t; then
+        if command -v systemctl >/dev/null 2>&1; then
+            $SUDO systemctl reload nginx
+        else
+            $SUDO nginx -s reload
+        fi
+        log_success "System nginx reloaded"
     else
-        $SUDO nginx -s reload
+        log_error "Nginx configuration test failed!"
+        log_error "Restoring backup..."
+        $SUDO mv "${SYSTEM_NGINX_UPSTREAM_FILE}.bak" "${SYSTEM_NGINX_UPSTREAM_FILE}"
+        exit 1
     fi
-    echo -e "${GREEN}✓ System nginx reloaded${NC}"
 else
-    echo -e "${YELLOW}Warning: system upstream file not found. Falling back to local nginx.conf and container nginx.${NC}"
+    log_warning "System upstream file not found. Falling back to local nginx.conf and container nginx."
     sed -i.bak "s|server [^;]*;  # Default:.*|server ${PREVIOUS_UPSTREAM_LOCAL};  # Default: ${PREVIOUS_SLOT}|" nginx.conf
 
-    echo -e "${YELLOW}Reloading nginx...${NC}"
-    docker exec nocturna-nginx nginx -s reload
+    log_info "Reloading nginx container..."
+    if docker ps | grep -q nocturna-nginx; then
+        docker exec nocturna-nginx nginx -s reload
+        log_success "Nginx container reloaded"
+    else
+        log_warning "Nginx container not running. Starting it..."
+        docker-compose -f docker-compose.nginx.yml up -d
+        sleep 3
+    fi
 fi
 
 # Save new active slot
-echo "$PREVIOUS_SLOT" > .active_slot
+echo "$PREVIOUS_SLOT" > "$METADATA_FILE"
 
-echo ""
-echo -e "${GREEN}Rollback completed! Traffic restored to ${PREVIOUS_SLOT}${NC}"
-echo ""
-echo -e "${BLUE}Current status:${NC}"
-echo "Active slot: ${PREVIOUS_SLOT}"
-echo "Failed slot: ${ACTIVE_SLOT}"
-echo ""
-echo -e "${YELLOW}Next steps:${NC}"
-echo "1. Investigate issues with ${ACTIVE_SLOT}"
-echo "2. Check logs: docker-compose -f docker-compose.${ACTIVE_SLOT}.yml logs"
-echo "3. Fix and redeploy when ready: ./deploy.sh"
+# Verify rollback
+log_info "Verifying rollback..."
+sleep 2
+if check_health "$PREVIOUS_SLOT"; then
+    log_success "Rollback completed! Traffic restored to $PREVIOUS_SLOT"
+    echo ""
+    log_info "Current status:"
+    log_info "  Active slot: $PREVIOUS_SLOT (port $PREVIOUS_PORT)"
+    log_info "  Failed slot: $ACTIVE_SLOT"
+    echo ""
+    log_info "Next steps:"
+    log_info "  1. Investigate issues with $ACTIVE_SLOT"
+    log_info "     docker-compose -f docker-compose.${ACTIVE_SLOT}.yml logs"
+    log_info ""
+    log_info "  2. Stop failed slot if needed:"
+    log_info "     docker-compose -f docker-compose.${ACTIVE_SLOT}.yml down"
+    log_info ""
+    log_info "  3. Fix and redeploy when ready:"
+    log_info "     ./deploy.sh"
+else
+    log_error "Health check failed after rollback!"
+    log_error "This is a critical situation - both slots may be unhealthy"
+    exit 1
+fi
