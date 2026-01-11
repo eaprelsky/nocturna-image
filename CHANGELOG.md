@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Additional planets support** - optional Rahu, Ketu, Selena, and Lilith (since nocturna-wheel 4.1.0)
+  - Rahu (North Lunar Node) - optional planet
+  - Ketu (South Lunar Node) - optional planet
+  - Selena (White Moon) - optional planet
+  - Lilith (Black Moon) - optional planet
+  - Classical 10 planets remain required for backward compatibility
+  - Example: `examples/chart-with-additional-planets.json`
+  - Updated API documentation with examples
 - **House display toggle** - new `showHouses` option in `renderOptions` (default: `true`)
   - Control visibility of house divisions and numbering
   - Works for all chart types: natal, transit, synastry, and biwheel
@@ -24,11 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - When set to `true`, a small 'R' symbol appears next to the planet icon on the chart
   - Defaults to `false` for backward compatibility
   - Works with natal, transit, synastry, and biwheel charts
-- Updated to nocturna-wheel v4.0.1 with retrograde planet support and house toggle method
+- Updated to nocturna-wheel v4.1.0 with additional planets support
 
 ### Planned
 - Caching layer for identical chart requests
-- Additional celestial bodies (Lilith, Chiron, North Node)
 - Async rendering queue system
 - Composite chart calculations
 

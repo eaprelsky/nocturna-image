@@ -100,6 +100,64 @@ describe('Chart Validators', () => {
       const result = natalChartSchema.safeParse(invalid);
       expect(result.success).toBe(false);
     });
+
+    test('should accept chart with additional planets (Rahu, Ketu, Selena, Lilith)', () => {
+      const withAdditionalPlanets = {
+        ...sampleNatalChart,
+        planets: {
+          ...sampleNatalChart.planets,
+          rahu: { lon: 123.45, lat: 0.0, retrograde: false },
+          ketu: { lon: 303.45, lat: 0.0, retrograde: false },
+          selena: { lon: 67.89, lat: 0.0, retrograde: false },
+          lilith: { lon: 247.89, lat: 0.0, retrograde: false },
+        },
+      };
+      const result = natalChartSchema.safeParse(withAdditionalPlanets);
+      expect(result.success).toBe(true);
+      expect(result.data?.planets.rahu).toEqual({ lon: 123.45, lat: 0.0, retrograde: false });
+      expect(result.data?.planets.ketu).toEqual({ lon: 303.45, lat: 0.0, retrograde: false });
+      expect(result.data?.planets.selena).toEqual({ lon: 67.89, lat: 0.0, retrograde: false });
+      expect(result.data?.planets.lilith).toEqual({ lon: 247.89, lat: 0.0, retrograde: false });
+    });
+
+    test('should accept chart with only some additional planets', () => {
+      const withPartialAdditionalPlanets = {
+        ...sampleNatalChart,
+        planets: {
+          ...sampleNatalChart.planets,
+          rahu: { lon: 123.45, lat: 0.0, retrograde: false },
+          ketu: { lon: 303.45, lat: 0.0, retrograde: false },
+        },
+      };
+      const result = natalChartSchema.safeParse(withPartialAdditionalPlanets);
+      expect(result.success).toBe(true);
+      expect(result.data?.planets.rahu).toBeDefined();
+      expect(result.data?.planets.ketu).toBeDefined();
+      expect(result.data?.planets.selena).toBeUndefined();
+      expect(result.data?.planets.lilith).toBeUndefined();
+    });
+
+    test('should maintain backward compatibility - chart without additional planets should work', () => {
+      // This is the existing sample chart without additional planets
+      const result = natalChartSchema.safeParse(sampleNatalChart);
+      expect(result.success).toBe(true);
+      expect(result.data?.planets.rahu).toBeUndefined();
+      expect(result.data?.planets.ketu).toBeUndefined();
+      expect(result.data?.planets.selena).toBeUndefined();
+      expect(result.data?.planets.lilith).toBeUndefined();
+    });
+
+    test('should reject invalid longitude for additional planets', () => {
+      const invalid = {
+        ...sampleNatalChart,
+        planets: {
+          ...sampleNatalChart.planets,
+          rahu: { lon: 400, lat: 0.0 }, // Invalid: > 360
+        },
+      };
+      const result = natalChartSchema.safeParse(invalid);
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('transitChartSchema', () => {

@@ -58,6 +58,7 @@ const renderOptionsSchema = z.object({
 });
 
 // Planets object with all supported planets
+// Classical planets (required for backward compatibility)
 const planetsSchema = z.object({
   sun: planetSchema,
   moon: planetSchema,
@@ -69,6 +70,11 @@ const planetsSchema = z.object({
   uranus: planetSchema,
   neptune: planetSchema,
   pluto: planetSchema,
+  // Additional planets (optional, supported since nocturna-wheel 4.1.0)
+  rahu: planetSchema.optional(),
+  ketu: planetSchema.optional(),
+  selena: planetSchema.optional(),
+  lilith: planetSchema.optional(),
 });
 
 // Houses array (12 houses)

@@ -20,6 +20,41 @@ export API_KEY="your-api-key-here"
 
 ## Examples
 
+### Additional Planets (Rahu, Ketu, Selena, Lilith)
+
+Since version 4.1.0, the service supports additional planets: Rahu (North Lunar Node), Ketu (South Lunar Node), Selena (White Moon), and Lilith (Black Moon).
+
+**Example JSON file:**
+- `chart-with-additional-planets.json` - Natal chart with all additional planets
+
+**Usage:**
+```json
+{
+  "planets": {
+    "sun": { "lon": 85.83 },
+    "moon": { "lon": 133.21 },
+    ...
+    "pluto": { "lon": 270.25 },
+    "rahu": { "lon": 123.45 },
+    "ketu": { "lon": 303.45 },
+    "selena": { "lon": 67.89 },
+    "lilith": { "lon": 247.89 }
+  },
+  ...
+}
+```
+
+**Test command:**
+```bash
+curl -X POST http://localhost:3000/api/v1/chart/render \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @chart-with-additional-planets.json \
+  | jq -r '.data.image' | base64 -d > chart-with-additional-planets.png
+```
+
+**Note:** Additional planets are optional. You can include any combination (all, some, or none). Charts without additional planets work exactly as before.
+
 ### House Display Toggle
 
 The service supports toggling the visibility of house divisions and numbering through the `showHouses` option.
@@ -181,7 +216,8 @@ Wait a moment and try again. The default rate limit is 100 requests per minute.
 ### Validation Error (400)
 
 Check that:
-- All required planets are provided (sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto)
+- All required classical planets are provided (sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto)
+- Additional planets are optional (rahu, ketu, selena, lilith)
 - Planet longitudes are between 0-360
 - Exactly 12 house cusps are provided for inner chart
 - House cusps longitudes are between 0-360

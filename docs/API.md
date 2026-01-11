@@ -41,7 +41,11 @@ Authorization: Bearer YOUR_API_KEY
     "saturn": { "lon": 290.45, "lat": 2.1, "retrograde": false },
     "uranus": { "lon": 15.60, "lat": -0.3, "retrograde": false },
     "neptune": { "lon": 325.80, "lat": 1.2, "retrograde": false },
-    "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false }
+    "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false },
+    "rahu": { "lon": 123.45, "lat": 0.0, "retrograde": false },
+    "ketu": { "lon": 303.45, "lat": 0.0, "retrograde": false },
+    "selena": { "lon": 67.89, "lat": 0.0, "retrograde": false },
+    "lilith": { "lon": 247.89, "lat": 0.0, "retrograde": false }
   },
   "houses": [
     { "lon": 300.32 },
@@ -239,7 +243,11 @@ Authorization: Bearer YOUR_API_KEY
       "saturn": { "lon": 290.45, "lat": 2.1, "retrograde": false },
       "uranus": { "lon": 15.60, "lat": -0.3, "retrograde": false },
       "neptune": { "lon": 325.80, "lat": 1.2, "retrograde": false },
-      "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false }
+      "pluto": { "lon": 270.25, "lat": 15.0, "retrograde": false },
+      "rahu": { "lon": 123.45, "lat": 0.0, "retrograde": false },
+      "ketu": { "lon": 303.45, "lat": 0.0, "retrograde": false },
+      "selena": { "lon": 67.89, "lat": 0.0, "retrograde": false },
+      "lilith": { "lon": 247.89, "lat": 0.0, "retrograde": false }
     },
     "houses": [
       { "lon": 300.32 },
@@ -268,7 +276,9 @@ Authorization: Bearer YOUR_API_KEY
       "saturn": { "lon": 295.60, "lat": 2.3, "retrograde": false },
       "uranus": { "lon": 18.40, "lat": -0.5, "retrograde": false },
       "neptune": { "lon": 327.90, "lat": 1.4, "retrograde": false },
-      "pluto": { "lon": 272.10, "lat": 14.8, "retrograde": false }
+      "pluto": { "lon": 272.10, "lat": 14.8, "retrograde": false },
+      "rahu": { "lon": 133.50, "lat": 0.0, "retrograde": false },
+      "ketu": { "lon": 313.50, "lat": 0.0, "retrograde": false }
     }
   },
   "biwheelSettings": {
@@ -430,6 +440,19 @@ chart_render_duration_seconds_bucket{type="natal",le="3"} 1200
 - `lat` (latitude): -90.0 - 90.0 (optional, default: 0.0)
 - `retrograde` (retrograde status): boolean (optional, default: false) - When true, a small 'R' symbol appears next to the planet icon
 
+### Supported Planets
+
+**Classical planets (required):**
+- `sun`, `moon`, `mercury`, `venus`, `mars`, `jupiter`, `saturn`, `uranus`, `neptune`, `pluto`
+
+**Additional planets (optional, since v4.1.0):**
+- `rahu` - North Lunar Node
+- `ketu` - South Lunar Node
+- `selena` - White Moon
+- `lilith` - Black Moon
+
+**Note:** All classical planets must be provided in every request. Additional planets are optional and can be included when needed. Requests without additional planets remain fully compatible with previous versions.
+
 ### Houses
 - Must provide exactly 12 house cusps
 - Each with `lon` value between 0.0 - 360.0
@@ -467,6 +490,38 @@ This works for all chart types:
 - Transit charts (`POST /api/v1/chart/render/transit`)
 - Synastry charts (`POST /api/v1/chart/render/synastry`)
 - Biwheel charts (`POST /api/v1/chart/render/biwheel`)
+
+## Additional Planets Usage
+
+Since version 4.1.0, you can optionally include Rahu, Ketu, Selena, and Lilith in your charts.
+
+**Example with additional planets:**
+```json
+{
+  "planets": {
+    "sun": { "lon": 85.83 },
+    "moon": { "lon": 133.21 },
+    "mercury": { "lon": 95.45 },
+    "venus": { "lon": 110.20 },
+    "mars": { "lon": 45.30 },
+    "jupiter": { "lon": 200.15 },
+    "saturn": { "lon": 290.45 },
+    "uranus": { "lon": 15.60 },
+    "neptune": { "lon": 325.80 },
+    "pluto": { "lon": 270.25 },
+    "rahu": { "lon": 123.45 },
+    "ketu": { "lon": 303.45 }
+  },
+  "houses": [ /* ... */ ],
+  "renderOptions": {
+    "format": "png",
+    "width": 800,
+    "height": 800
+  }
+}
+```
+
+**Note:** You can include any combination of additional planets (all, some, or none). The service maintains backward compatibility - requests without additional planets work exactly as before.
 
 ## cURL Examples
 
