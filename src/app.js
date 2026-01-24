@@ -7,6 +7,7 @@ const requestLogger = require('./api/middlewares/requestLogger.middleware');
 const rateLimiter = require('./api/middlewares/rateLimit.middleware');
 const errorHandler = require('./api/middlewares/errorHandler.middleware');
 const routes = require('./api/routes');
+const routesV2 = require('./api/routes/index.v2');
 
 const app = express();
 
@@ -25,20 +26,40 @@ app.use('/api', rateLimiter);
 
 // Routes
 app.use('/', routes);
-app.use('/api/v1', routes);
+app.use('/api/v1', routes); // v1 API (legacy wheel order)
+app.use('/api/v2', routesV2); // v2 API (correct wheel order)
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
     name: 'Nocturna Chart Service',
-    version: '1.0.0',
+    version: '2.0.0',
     status: 'running',
-    endpoints: {
+    apiVersions: {
+      v1: {
+        description: 'Legacy API (natal/person1 on outer, transit/person2 on inner)',
+        status: 'deprecated',
+        endpoints: {
+          render: 'POST /api/v1/chart/render',
+          renderTransit: 'POST /api/v1/chart/render/transit',
+          renderSynastry: 'POST /api/v1/chart/render/synastry',
+          renderBiwheel: 'POST /api/v1/chart/render/biwheel',
+        },
+      },
+      v2: {
+        description: 'Current API (natal/person1/inner on inner, transit/person2/outer on outer)',
+        status: 'stable',
+        endpoints: {
+          render: 'POST /api/v2/chart/render',
+          renderTransit: 'POST /api/v2/chart/render/transit',
+          renderSynastry: 'POST /api/v2/chart/render/synastry',
+          renderBiwheel: 'POST /api/v2/chart/render/biwheel',
+        },
+      },
+    },
+    systemEndpoints: {
       health: '/health',
       metrics: '/metrics',
-      render: 'POST /api/v1/chart/render',
-      renderTransit: 'POST /api/v1/chart/render/transit',
-      renderSynastry: 'POST /api/v1/chart/render/synastry',
     },
   });
 });

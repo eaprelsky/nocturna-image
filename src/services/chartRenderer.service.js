@@ -41,7 +41,7 @@ class ChartRendererService {
     }
   }
 
-  async renderChart(chartData, renderOptions = {}) {
+  async renderChart(chartData, renderOptions = {}, apiVersion = 'v1') {
     const startTime = Date.now();
     const chartType = chartData.chartType || 'natal';
     let page = null;
@@ -81,7 +81,7 @@ class ChartRendererService {
       const template = await this.loadTemplate('chart.html');
 
       // Prepare chart configuration
-      const chartConfig = this.prepareChartConfig(chartData, renderOptions);
+      const chartConfig = this.prepareChartConfig(chartData, renderOptions, apiVersion);
 
       // Inject data into template (now async - inlines library)
       const html = await this.injectDataIntoTemplate(template, chartConfig);
@@ -281,7 +281,10 @@ class ChartRendererService {
     }
   }
 
-  prepareChartConfig(chartData, renderOptions) {
+  prepareChartConfig(chartData, renderOptions, apiVersion = 'v1') {
+    // API v1: legacy behavior (swapped wheels for backward compatibility)
+    // API v2: correct behavior (natal/person1/inner on inner circle)
+    const shouldSwapWheels = apiVersion === 'v1';
     const config = {
       planets: chartData.planets || {},
       houses: chartData.houses || [],
@@ -306,40 +309,95 @@ class ChartRendererService {
 
     // Handle transit chart
     if (chartData.natal && chartData.transit) {
-      config.planets = chartData.natal.planets;
-      config.secondaryPlanets = chartData.transit.planets;
-      config.houses = chartData.natal.houses;
-      
-      // For transit charts, primary aspects (natal) should be disabled by default
-      // Always set enabled=false unless explicitly enabled by client
-      if (chartData.aspectSettings?.natal) {
-        config.primaryAspectSettings = {
-          ...chartData.aspectSettings.natal,
-          // Force enabled to false for transit charts (can be overridden by explicit client setting)
+      // nocturna-wheel mapping: planets=outer circle, secondaryPlanets=inner circle
+      // v2 (correct): natal on inner, transit on outer
+      // v1 (legacy): natal on outer, transit on inner (backward compatibility)
+
+      if (shouldSwapWheels) {
+        // v1 API: legacy behavior - natal on outer, transit on inner
+        config.planets = chartData.natal.planets;          // natal goes to outer circle (v1)
+        config.secondaryPlanets = chartData.transit.planets; // transit goes to inner circle (v1)
+
+        // v1: primaryAspectSettings = transit (inner), secondaryAspectSettings = natal (outer)
+        config.primaryAspectSettings = chartData.aspectSettings?.transit || {
           enabled: false,
+          orb: 6,
         };
+
+        if (chartData.aspectSettings?.natal) {
+          config.secondaryAspectSettings = {
+            ...chartData.aspectSettings.natal,
+            enabled: false,
+          };
+        } else {
+          config.secondaryAspectSettings = { enabled: false, orb: 6 };
+        }
       } else {
-        config.primaryAspectSettings = { enabled: false, orb: 6 };
+        // v2 API: correct behavior - natal on inner, transit on outer
+        config.planets = chartData.transit.planets;          // transit goes to outer circle (v2)
+        config.secondaryPlanets = chartData.natal.planets;   // natal goes to inner circle (v2)
+
+        // v2: primaryAspectSettings = natal (inner), secondaryAspectSettings = transit (outer)
+        if (chartData.aspectSettings?.natal) {
+          config.primaryAspectSettings = {
+            ...chartData.aspectSettings.natal,
+            enabled: false,
+          };
+        } else {
+          config.primaryAspectSettings = { enabled: false, orb: 6 };
+        }
+
+        config.secondaryAspectSettings = chartData.aspectSettings?.transit || {
+          enabled: false,
+          orb: 6,
+        };
       }
-      
-      config.secondaryAspectSettings = chartData.aspectSettings?.transit || {
-        enabled: false,
-        orb: 6,
-      };
+
+      config.houses = chartData.natal.houses;
       config.synastryAspectSettings = chartData.aspectSettings?.natalToTransit || {
         enabled: true,
         orb: 3,
       };
-      
-      // DEBUG: Log primary aspect settings for transit chart
-      logger.debug('Transit chart - primaryAspectSettings configured:', JSON.stringify(config.primaryAspectSettings));
+
+      logger.debug(`Transit chart (API ${apiVersion}) - natal on ${shouldSwapWheels ? 'outer' : 'inner'}, transit on ${shouldSwapWheels ? 'inner' : 'outer'}`);
     }
 
     // Handle synastry chart
     if (chartData.person1 && chartData.person2) {
-      config.planets = chartData.person1.planets;
-      config.secondaryPlanets = chartData.person2.planets;
-      
+      // nocturna-wheel mapping: planets=outer circle, secondaryPlanets=inner circle
+      // v2 (correct): person1 on inner, person2 on outer
+      // v1 (legacy): person1 on outer, person2 on inner (backward compatibility)
+
+      if (shouldSwapWheels) {
+        // v1 API: legacy behavior - person1 on outer, person2 on inner
+        config.planets = chartData.person1.planets;          // person1 goes to outer circle (v1)
+        config.secondaryPlanets = chartData.person2.planets; // person2 goes to inner circle (v1)
+
+        // v1: primaryAspectSettings = person2 (inner), secondaryAspectSettings = person1 (outer)
+        config.primaryAspectSettings = chartData.synastrySettings?.aspectSettings?.person2 || {
+          enabled: false,
+          orb: 6,
+        };
+        config.secondaryAspectSettings = chartData.synastrySettings?.aspectSettings?.person1 || {
+          enabled: true,
+          orb: 6,
+        };
+      } else {
+        // v2 API: correct behavior - person1 on inner, person2 on outer
+        config.planets = chartData.person2.planets;          // person2 goes to outer circle (v2)
+        config.secondaryPlanets = chartData.person1.planets; // person1 goes to inner circle (v2)
+
+        // v2: primaryAspectSettings = person1 (inner), secondaryAspectSettings = person2 (outer)
+        config.primaryAspectSettings = chartData.synastrySettings?.aspectSettings?.person1 || {
+          enabled: true,
+          orb: 6,
+        };
+        config.secondaryAspectSettings = chartData.synastrySettings?.aspectSettings?.person2 || {
+          enabled: false,
+          orb: 6,
+        };
+      }
+
       // Select houses based on synastrySettings.useHousesFrom
       const useHousesFrom = chartData.synastrySettings?.useHousesFrom || 'person1';
       if (useHousesFrom === 'person2') {
@@ -347,27 +405,51 @@ class ChartRendererService {
       } else {
         config.houses = chartData.person1.houses;
       }
-      
-      config.primaryAspectSettings = chartData.synastrySettings?.aspectSettings?.person1 || {
-        enabled: true,
-        orb: 6,
-      };
-      config.secondaryAspectSettings = chartData.synastrySettings?.aspectSettings?.person2 || {
-        enabled: false,
-        orb: 6,
-      };
+
       config.synastryAspectSettings = chartData.synastrySettings?.aspectSettings?.interaspects || {
         enabled: true,
         orb: 6,
       };
+
+      logger.debug(`Synastry chart (API ${apiVersion}) - person1 on ${shouldSwapWheels ? 'outer' : 'inner'}, person2 on ${shouldSwapWheels ? 'inner' : 'outer'}`);
     }
 
     // Handle biwheel chart (generic dual chart)
     if (chartData.inner && chartData.outer) {
-      // In nocturna-wheel: planets = outer circle, secondaryPlanets = inner circle
-      config.planets = chartData.inner.planets;
-      config.secondaryPlanets = chartData.outer.planets;
-      
+      // nocturna-wheel mapping: planets=outer circle, secondaryPlanets=inner circle
+      // v2 (correct): inner on inner, outer on outer
+      // v1 (legacy): inner on outer, outer on inner (backward compatibility)
+
+      if (shouldSwapWheels) {
+        // v1 API: legacy behavior - inner on outer, outer on inner
+        config.planets = chartData.inner.planets;          // inner goes to outer circle (v1)
+        config.secondaryPlanets = chartData.outer.planets; // outer goes to inner circle (v1)
+
+        // v1: primaryAspectSettings = outer (inner circle), secondaryAspectSettings = inner (outer circle)
+        config.primaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.outer || {
+          enabled: true,
+          orb: 6,
+        };
+        config.secondaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.inner || {
+          enabled: true,
+          orb: 6,
+        };
+      } else {
+        // v2 API: correct behavior - inner on inner, outer on outer
+        config.planets = chartData.outer.planets;          // outer goes to outer circle (v2)
+        config.secondaryPlanets = chartData.inner.planets; // inner goes to inner circle (v2)
+
+        // v2: primaryAspectSettings = inner (inner circle), secondaryAspectSettings = outer (outer circle)
+        config.primaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.inner || {
+          enabled: true,
+          orb: 6,
+        };
+        config.secondaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.outer || {
+          enabled: true,
+          orb: 6,
+        };
+      }
+
       // Select houses based on biwheelSettings.useHousesFrom
       const useHousesFrom = chartData.biwheelSettings?.useHousesFrom || 'inner';
       if (useHousesFrom === 'outer' && chartData.outer.houses) {
@@ -375,19 +457,13 @@ class ChartRendererService {
       } else {
         config.houses = chartData.inner.houses;
       }
-      
-      config.primaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.inner || {
-        enabled: true,
-        orb: 6,
-      };
-      config.secondaryAspectSettings = chartData.biwheelSettings?.aspectSettings?.outer || {
-        enabled: true,
-        orb: 6,
-      };
+
       config.synastryAspectSettings = chartData.biwheelSettings?.aspectSettings?.crossAspects || {
         enabled: true,
         orb: 6,
       };
+
+      logger.debug(`Biwheel chart (API ${apiVersion}) - inner on ${shouldSwapWheels ? 'outer' : 'inner'}, outer on ${shouldSwapWheels ? 'inner' : 'outer'}`);
     }
 
     // DEBUG: Log final config
